@@ -104,7 +104,6 @@
       border: 1px solid #30363d;
     }
 
-    /* گرید دو ستونه: برنامه زمان‌بندی و پنل مینت */
     .main-grid {
       display: grid;
       grid-template-columns: 1.4fr 1fr;
@@ -114,7 +113,7 @@
       .main-grid { grid-template-columns: 1fr; }
     }
 
-    /* طراحی بخش Mint schedule */
+    /* Mint schedule */
     .schedule-box { display: flex; flex-direction: column; gap: 12px; }
     .stage-item {
       background: var(--card);
@@ -163,7 +162,7 @@
     .not-eligible { background: #3d1d24; color: #ff7b72; }
     .eligible { background: #163c29; color: #7ee787; }
 
-    /* پنل مینت */
+    /* پنل تسویه */
     .mint-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -224,8 +223,8 @@
   <div class="wrapper">
     <div class="top-bar">
       <div>
-        <h2 style="margin: 0; color: var(--blue);">OpenSea Precision Minter ⚡</h2>
-        <small style="color: var(--muted);">تشخیص آنی شبکه از تگ اکسپلورر اوپن‌سی و مینت مستقیم</small>
+        <h2 style="margin: 0; color: var(--blue);">OpenSea Instant Minter ⚡</h2>
+        <small style="color: var(--muted);">سازگار با Rabby Auto-Switch و کانترکت SeaDrop</small>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <button id="connectBtn" class="btn btn-connect" onclick="connectWallet()">اتصال کیف پول</button>
@@ -233,54 +232,44 @@
       </div>
     </div>
 
-    <!-- کادر ورودی تگ یا لینک اکسپلورر اوپن‌سی -->
+    <!-- فیلد ورودی -->
     <div class="search-box">
-      <label style="font-size: 0.85rem; color: var(--muted);">لینک اکسپلورر، تگ HTML یا آدرس قرارداد اوپن‌سی:</label>
+      <label style="font-size: 0.85rem; color: var(--muted);">لینک اکسپلورر، تگ HTML یا آدرس کانترکت:</label>
       <div class="search-row">
-        <input type="text" id="rawInput" placeholder="لینک یا تگ اکسپلورر اوپن‌سی..." value="https://robinhoodchain.blockscout.com/address/0x7727a8eb961197149ffbe87bdcf93551848ab672" />
-        <button onclick="parseAndLoad()">تشخیص شبکه و بارگذاری</button>
+        <input type="text" id="rawInput" placeholder="پیست کردن لینک یا تگ..." value="https://robinhoodchain.blockscout.com/address/0x7727a8eb961197149ffbe87bdcf93551848ab672" />
+        <button onclick="parseAndLoad()">شناسایی و تنظیم</button>
       </div>
     </div>
 
     <div id="status"></div>
 
-    <!-- کارت اطلاعات قرارداد و شبکه -->
     <div class="drop-hero" id="heroSection">
       <div>
         <h3 id="contractTitle" style="margin: 0 0 6px 0;">قرارداد آماده مینت ✓</h3>
         <span id="contractDisplay" style="font-family: monospace; font-size: 0.8rem; color: var(--muted);">قرارداد: 0x7727a8eb961197149ffbe87bdcf93551848ab672</span>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <span id="networkBadge" class="network-pill">شبکه: Robinhood Chain</span>
-        <button class="btn" style="padding: 4px 8px; font-size: 0.75rem; background: #21262d; color: var(--text);" onclick="useCurrentWalletChain()" title="استفاده از شبکه فعلی متامسک">ست کردن شبکه فعلی ولت</button>
+      <div>
+        <span id="networkBadge" class="network-pill">مدیریت شبکه: اتوماتیک توسط Rabby</span>
       </div>
     </div>
 
     <div class="main-grid">
-      <!-- بخش دقیق Mint schedule و فازهای زمان‌بندی -->
+      <!-- Mint schedule -->
       <div>
         <h3 style="margin: 0 0 12px 0;">Mint schedule</h3>
         <div class="schedule-box" id="scheduleContainer"></div>
       </div>
 
-      <!-- پنل ارسال تراکنش SeaDrop -->
+      <!-- پنل مینت -->
       <div class="mint-card">
         <h3 style="margin-top: 0;">کنترلر مینت مستقیم</h3>
 
-        <div class="info-row">
-          <span>شبکه فعال ولت شما:</span>
-          <span id="currentWalletChain">-</span>
-        </div>
-        <div class="info-row">
-          <span>شبکه مورد نیاز دراپ:</span>
-          <span id="requiredChain">Robinhood Chain</span>
-        </div>
         <div class="info-row">
           <span>فاز انتخابی:</span>
           <span id="selectedStageName">Public stage</span>
         </div>
         <div class="info-row">
-          <span>قیمت هر واحد:</span>
+          <span>قیمت واحد:</span>
           <span id="selectedStagePrice">0.003 ETH</span>
         </div>
         <div class="info-row">
@@ -288,7 +277,7 @@
           <span id="selectedStageLimit">20 per wallet</span>
         </div>
         <div class="info-row">
-          <span>وضعیت صلاحیت شما:</span>
+          <span>وضعیت صلاحیت:</span>
           <span id="eligibilityDisplay" style="color: #7ee787;">Eligible ✓</span>
         </div>
 
@@ -308,47 +297,7 @@
   </div>
 
   <script>
-    // نگاشت اکسپلوررهای اوپن‌سی به شبکه
-    const EXPLORER_NETWORK_MAP = [
-      {
-        matchPattern: "robinhoodchain.blockscout.com",
-        name: "Robinhood Chain",
-        chainId: 4668,
-        hex: "0x123c",
-        symbol: "ETH",
-        rpcUrls: ["https://rpc.robinhoodchain.com"],
-        blockExplorerUrls: ["https://robinhoodchain.blockscout.com"]
-      },
-      {
-        matchPattern: "etherscan.io",
-        name: "Ethereum Mainnet",
-        chainId: 1,
-        hex: "0x1",
-        symbol: "ETH",
-        rpcUrls: ["https://eth.llamarpc.com"],
-        blockExplorerUrls: ["https://etherscan.io"]
-      },
-      {
-        matchPattern: "basescan.org",
-        name: "Base",
-        chainId: 8453,
-        hex: "0x2105",
-        symbol: "ETH",
-        rpcUrls: ["https://mainnet.base.org"],
-        blockExplorerUrls: ["https://basescan.org"]
-      },
-      {
-        matchPattern: "arbiscan.io",
-        name: "Arbitrum One",
-        chainId: 42161,
-        hex: "0xa4b1",
-        symbol: "ETH",
-        rpcUrls: ["https://arb1.arbitrum.io/rpc"],
-        blockExplorerUrls: ["https://arbiscan.io"]
-      }
-    ];
-
-    // زمان‌بندی واقعی فازهای دراپ
+    // برنامه فازهای مینت
     const MINT_SCHEDULE = [
       {
         name: "Team",
@@ -402,7 +351,6 @@
     ];
 
     let detectedContract = "0x7727a8eb961197149ffbe87bdcf93551848ab672";
-    let detectedNetwork = EXPLORER_NETWORK_MAP[0]; // پیش‌فرض رابین‌هود
     let selectedStage = MINT_SCHEDULE[3]; // پیش‌فرض فاز Live now
     let provider, signer, userAddress;
 
@@ -453,25 +401,15 @@
 
     function parseAndLoad() {
       const raw = document.getElementById("rawInput").value.trim();
-
-      // ۱. استخراج آدرس
       const addressMatch = raw.match(/0x[a-fA-F0-9]{40}/);
       if (addressMatch) {
         detectedContract = ethers.utils.getAddress(addressMatch[0].toLowerCase());
+        document.getElementById("contractDisplay").innerText = "قرارداد: " + detectedContract;
+        showStatus("قرارداد با موفقیت تنظیم شد. ربی به طور خودکار شبکه را تنظیم خواهد کرد.", "success");
+      } else {
+        showStatus("آدرس قرارداد معتبری یافت نشد.", "error");
       }
-
-      // ۲. استخراج شبکه بر اساس دامنه
-      const foundNet = EXPLORER_NETWORK_MAP.find(net => raw.toLowerCase().includes(net.matchPattern));
-      if (foundNet) {
-        detectedNetwork = foundNet;
-      }
-
-      document.getElementById("contractDisplay").innerText = "قرارداد: " + detectedContract;
-      document.getElementById("networkBadge").innerText = "شبکه: " + detectedNetwork.name;
-      document.getElementById("requiredChain").innerText = detectedNetwork.name;
-
       calculateTotal();
-      showStatus(`قرارداد و شبکه ${detectedNetwork.name} با موفقیت هماهنگ شدند.`, "success");
     }
 
     function calculateTotal() {
@@ -480,63 +418,9 @@
       document.getElementById("totalCost").innerText = `${total} ETH`;
     }
 
-    // اگر ولت از قبل روی رابین‌هود است، چین‌آیدی ولت را برمی‌دارد تا هیچ سوییچ اضافه‌ای نخواهد
-    async function useCurrentWalletChain() {
-      if (!window.ethereum) return;
-      const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
-      const currentId = parseInt(chainIdHex, 16);
-
-      detectedNetwork = {
-        name: "شبکه فعلی ولت شما",
-        chainId: currentId,
-        hex: chainIdHex,
-        symbol: "ETH"
-      };
-
-      document.getElementById("networkBadge").innerText = `شبکه ولت (Chain: ${currentId})`;
-      document.getElementById("requiredChain").innerText = `همگام با ولت (${currentId})`;
-      showStatus(`سیستم مستقیماً با شبکه فعلی ولت شما (${currentId}) هماهنگ شد. نیازی به سوییچ نیست!`, "success");
-    }
-
-    async function ensureCorrectNetwork() {
-      if (!window.ethereum || !detectedNetwork) return;
-      const currentChainIdHex = await window.ethereum.request({ method: "eth_chainId" });
-      const currentChainId = parseInt(currentChainIdHex, 16);
-
-      // اگر ولت از قبل روی همین شبکه باشد، اصلاً دست به متامسک نزن!
-      if (currentChainId === detectedNetwork.chainId) {
-        return;
-      }
-
-      showStatus(`در حال سوئیچ به شبکه ${detectedNetwork.name}...`, "info");
-      try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: detectedNetwork.hex }]
-        });
-      } catch (switchError) {
-        // اگر شبکه ثبت نشده بود، درخواست اضافه شدن بفرست
-        if (switchError.code === 4902 && detectedNetwork.rpcUrls) {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: detectedNetwork.hex,
-              chainName: detectedNetwork.name,
-              nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-              rpcUrls: detectedNetwork.rpcUrls,
-              blockExplorerUrls: detectedNetwork.blockExplorerUrls
-            }]
-          });
-        } else {
-          // اگر خطا داد، یعنی ولت روی شبکه سفارشی هست؛ به کاربر اجازه بده همان شبکه فعلی را انتخاب کند
-          throw new Error("لطفاً در متامسک شبکه مورد نظر را دستی فعال کنید یا دکمه 'ست کردن شبکه فعلی ولت' را بزنید.");
-        }
-      }
-    }
-
     async function connectWallet() {
       if (!window.ethereum) {
-        alert("لطفاً افزونه متامسک را نصب کنید.");
+        alert("لطفاً افزونه کیف پول (Rabby / Metamask) را نصب کنید.");
         return;
       }
       try {
@@ -544,9 +428,6 @@
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
-
-        const net = await provider.getNetwork();
-        document.getElementById("currentWalletChain").innerText = `Chain ID: ${net.chainId}`;
 
         document.getElementById("walletAddress").innerText = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
         document.getElementById("connectBtn").innerText = "متصل شد ✓";
@@ -556,14 +437,14 @@
         btn.disabled = false;
         btn.innerText = "مینت مستقیم از SeaDrop ⚡";
       } catch (err) {
-        showStatus("خطا در ولت: " + err.message, "error");
+        showStatus("خطا در اتصال: " + err.message, "error");
       }
     }
 
     async function executeMint() {
       if (!signer) return;
       if (selectedStage.status === "Ended") {
-        showStatus("این فاز منقضی شده است. لطفاً فاز Live now (Public stage) را انتخاب کنید.", "error");
+        showStatus("این فاز منقضی شده است. فاز Live now را انتخاب کنید.", "error");
         return;
       }
 
@@ -571,14 +452,13 @@
       const totalCost = ethers.utils.parseEther((qty * selectedStage.price).toString());
 
       try {
-        await ensureCorrectNetwork();
-
         const cleanContract = ethers.utils.getAddress(detectedContract.toLowerCase());
         const cleanSeaDrop = ethers.utils.getAddress(SEADROP_ADDRESS.toLowerCase());
 
-        showStatus("در حال ارسال مستقیم تراکنش به قرارداد SeaDrop...", "info");
+        showStatus("ارسال درخواست تراکنش به Rabby...", "info");
         const seaDrop = new ethers.Contract(cleanSeaDrop, SEADROP_ABI, signer);
 
+        // ارسال مستقیم تراکنش (ربی خودش پاپ‌آپ سوییچ و امضا رو باز می‌کنه)
         const tx = await seaDrop.mintPublic(
           cleanContract,
           ethers.constants.AddressZero,
@@ -591,7 +471,7 @@
         await tx.wait();
         showStatus("مینت با موفقیت کامل انجام شد! 🎉", "success");
       } catch (err) {
-        showStatus("خطا در تراکنش: " + (err.reason || err.message), "error");
+        showStatus("خطا در تراکنش: " + (err.reason || err.data?.message || err.message), "error");
       }
     }
 
@@ -602,7 +482,6 @@
       el.style.display = "block";
     }
 
-    // بارگذاری اولیه
     renderScheduleUI();
     calculateTotal();
   </script>
