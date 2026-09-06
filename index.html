@@ -14,8 +14,6 @@
       --muted: #8b949e;
       --blue: #2f81f7;
       --green: #238636;
-      --tag-live: #238636;
-      --tag-ended: #30363d;
     }
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -58,10 +56,7 @@
       gap: 10px;
       margin-bottom: 20px;
     }
-    .search-row {
-      display: flex;
-      gap: 10px;
-    }
+    .search-row { display: flex; gap: 10px; }
     .search-box input {
       flex: 1;
       background: #0d1117;
@@ -173,18 +168,16 @@
       </div>
     </div>
 
-    <!-- کادر دریافت لینک یا تگ HTML اوپن‌سی -->
     <div class="search-box">
-      <label style="font-size: 0.85rem; color: var(--muted);">لینک صفحه اوپن‌سی یا تگ کپی‌شده اکسپلورر (مثل Robinhood Blockscout):</label>
+      <label style="font-size: 0.85rem; color: var(--muted);">لینک اکسپلورر، تگ HTML یا آدرس اوپن‌سی:</label>
       <div class="search-row">
-        <input type="text" id="rawInput" placeholder="لینک اکسپلورر یا تگ HTML یا آدرس اوپن‌سی..." value="https://robinhoodchain.blockscout.com/address/0x7727a8eb961197149ffbe87bdcf93551848ab672" />
+        <input type="text" id="rawInput" placeholder="پیست کردن لینک یا تگ..." value="https://robinhoodchain.blockscout.com/address/0x7727a8eb961197149ffbe87bdcf93551848ab672" />
         <button onclick="parseAndLoad()">تشخیص شبکه و بارگذاری</button>
       </div>
     </div>
 
     <div id="status"></div>
 
-    <!-- پنل اطلاعات استخراج شده -->
     <div class="drop-hero" id="heroSection">
       <div>
         <h3 id="contractTitle" style="margin: 0 0 6px 0;">آماده دریافت دیتای دراپ</h3>
@@ -195,20 +188,19 @@
       </div>
     </div>
 
-    <!-- پنل تسویه و مینت مستقیم -->
     <div class="mint-card">
-      <h3 style="margin-top: 0;">پنل ارسال تراکنش بدون واسطه SeaDrop</h3>
+      <h3 style="margin-top: 0;">پنل ارسال تراکنش SeaDrop</h3>
 
       <div class="info-row">
-        <span>شبکه متصل در متامسک:</span>
+        <span>شبکه متصل متامسک:</span>
         <span id="currentWalletChain">-</span>
       </div>
       <div class="info-row">
-        <span>شبکه مورد نیاز برای این دراپ:</span>
+        <span>شبکه مورد نیاز:</span>
         <span id="requiredChain">-</span>
       </div>
       <div class="info-row">
-        <span>قیمت واحد تخمینی:</span>
+        <span>قیمت واحد:</span>
         <span id="stagePrice">0.003 ETH</span>
       </div>
 
@@ -227,7 +219,6 @@
   </div>
 
   <script>
-    // نگاشت تمام دامنه‌های اکسپلورر اوپن‌سی به شبکه و ChainId اختصاصی
     const EXPLORER_NETWORK_MAP = [
       {
         matchPattern: "robinhoodchain.blockscout.com",
@@ -285,28 +276,22 @@
     let detectedNetwork = null;
     let provider, signer, userAddress;
 
-    // استخراج هوشمند آدرس قرارداد و شبکه از تگ یا لینک ورودی
     function parseAndLoad() {
       const raw = document.getElementById("rawInput").value.trim();
 
-      // ۱. استخراج آدرس قرارداد به صورت Hex معتبر
       const addressMatch = raw.match(/0x[a-fA-F0-9]{40}/);
       if (!addressMatch) {
-        showStatus("هیچ آدرس قرارداد معتبری (0x...) در ورودی پیدا نشد.", "error");
+        showStatus("هیچ آدرس معتبری در متن پیدا نشد.", "error");
         return;
       }
 
       detectedContract = ethers.utils.getAddress(addressMatch[0].toLowerCase());
-
-      // ۲. پیدا کردن شبکه بر اساس دامنه اکسپلورر موجود در متن
       detectedNetwork = EXPLORER_NETWORK_MAP.find(net => raw.toLowerCase().includes(net.matchPattern));
 
-      // اگر از لینک‌های معمول اوپن‌سی بود و دامنه اکسپلورر نداشت، پیش‌فرض را اتریوم بگذار
       if (!detectedNetwork) {
-        detectedNetwork = EXPLORER_NETWORK_MAP[1]; // Ethereum
+        detectedNetwork = EXPLORER_NETWORK_MAP[1]; // پیش‌فرض اتریوم
       }
 
-      // به‌روزرسانی UI
       document.getElementById("contractTitle").innerText = "قرارداد آماده مینت ✓";
       document.getElementById("contractDisplay").innerText = "قرارداد: " + detectedContract;
       
@@ -317,7 +302,7 @@
       document.getElementById("requiredChain").innerText = `${detectedNetwork.name} (Chain ID: ${detectedNetwork.chainId})`;
       
       calculateTotal();
-      showStatus(`شبکه ${detectedNetwork.name} و قرارداد با موفقیت شناسایی شدند.`, "success");
+      showStatus(`شبکه ${detectedNetwork.name} و آدرس قرارداد با موفقیت شناسایی شدند.`, "success");
     }
 
     function calculateTotal() {
@@ -328,20 +313,22 @@
       document.getElementById("totalCost").innerText = `${total} ${sym}`;
     }
 
+    // تغییر خودکار شبکه و اضافه کردن شبکه در صورت ناشناخته بودن در ولت
     async function ensureCorrectNetwork() {
-      if (!detectedNetwork) return;
+      if (!detectedNetwork || !window.ethereum) return;
       const currentChainIdHex = await window.ethereum.request({ method: "eth_chainId" });
 
       if (parseInt(currentChainIdHex, 16) !== detectedNetwork.chainId) {
-        showStatus(`در حال ارسال درخواست سوئیچ شبکه به ${detectedNetwork.name} در متامسک...`, "info");
+        showStatus(`در حال هماهنگ‌سازی متامسک با شبکه ${detectedNetwork.name}...`, "info");
         try {
+          // تلاش اول: سوییچ مستقیم
           await window.ethereum.request({
             method: "wallet_switchEthereumChain",
             params: [{ chainId: detectedNetwork.hex }]
           });
-        } catch (err) {
-          // افزودن شبکه در صورت عدم وجود
-          if (err.code === 4902 && detectedNetwork.rpcUrls) {
+        } catch (switchError) {
+          // اگر شبکه در متامسک ثبت نشده بود یا خطای Unrecognized داد، شبکه را اضافه کن
+          try {
             await window.ethereum.request({
               method: "wallet_addEthereumChain",
               params: [{
@@ -352,8 +339,8 @@
                 blockExplorerUrls: detectedNetwork.blockExplorerUrls
               }]
             });
-          } else {
-            throw err;
+          } catch (addError) {
+            throw new Error(`خطا در افزودن شبکه ${detectedNetwork.name} به کیف پول: ` + addError.message);
           }
         }
       }
@@ -361,7 +348,7 @@
 
     async function connectWallet() {
       if (!window.ethereum) {
-        alert("لطفاً افزونه کیف پول را نصب کنید.");
+        alert("لطفاً افزونه متامسک را نصب کنید.");
         return;
       }
       try {
@@ -396,15 +383,18 @@
       const totalEth = ethers.utils.parseEther((qty * 0.003).toString());
 
       try {
-        // ۱. سوئیچ به شبکه صحیح (مثلاً رابین‌هود یا اتریوم)
+        // ۱. هماهنگی و در صورت نیاز، ادد کردن اتوماتیک شبکه به متامسک
         await ensureCorrectNetwork();
 
-        // ۲. ارسال مستقیم به قرارداد استاندارد SeaDrop
-        showStatus(`ارسال تراکنش روی شبکه ${detectedNetwork.name}...`, "info");
-        const seaDrop = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, signer);
+        // ۲. ارسال تراکنش مستقیم به کانترکت استاندارد SeaDrop
+        const cleanContract = ethers.utils.getAddress(detectedContract.toLowerCase());
+        const cleanSeaDrop = ethers.utils.getAddress(SEADROP_ADDRESS.toLowerCase());
+
+        showStatus(`در حال ارسال تراکنش به قرارداد SeaDrop روی شبکه ${detectedNetwork.name}...`, "info");
+        const seaDrop = new ethers.Contract(cleanSeaDrop, SEADROP_ABI, signer);
 
         const tx = await seaDrop.mintPublic(
-          detectedContract,
+          cleanContract,
           ethers.constants.AddressZero,
           ethers.constants.AddressZero,
           qty,
@@ -426,7 +416,6 @@
       el.style.display = "block";
     }
 
-    // بارگذاری اولیه با نمونه رابین‌هود
     parseAndLoad();
   </script>
 </body>
