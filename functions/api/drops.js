@@ -1,60 +1,46 @@
-// functions/api/drops.js
-export async function onRequestGet() {
-  const query = `
-    query DropsPageQuery {
-      drops(first: 20) {
-        edges {
-          node {
-            id
-            name
-            slug
-            chain
-            bannerImageUrl
-            imageUrl
-            contractAddress
-            mintStages {
-              edges {
-                node {
-                  id
-                  name
-                  stageType
-                  startTime
-                  endTime
-                  price {
-                    unit
-                    symbol
-                  }
-                  perWalletLimit
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
+// functions/api/drop.js
+// GET /api/drop?slug=chompnft
+// این تابع روی سرور (Cloudflare Pages Functions) اجرا می‌شود، پس کلید API هرگز
+// در مرورگر کاربر دیده نمی‌شود.
+//
+// نکته: کلید OPENSEA_API_KEY را باید در تنظیمات پروژه‌ی Cloudflare Pages
+// (Settings → Environment variables) به‌عنوان یک متغیر Secret اضافه کنی.
+
+export async function onRequestGet({ request, env }) {
+  const url = new URL(request.url);
+  const slug = url.searchParams.get("slug");
+
+  if (!slug) {
+    return json({ error: "پارامتر slug الزامی است" }, 400);
+  }
+
+  if (!env.OPENSEA_API_KEY) {
+    return json({ error: "OPENSEA_API_KEY روی سرور تنظیم نشده است" }, 500);
+  }
 
   try {
-    const res = await fetch("https://api.opensea.io/graphql", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-      },
-      body: JSON.stringify({ query })
-    });
+    const res = await fetch(
+      `https://api.opensea.io/api/v2/drops/${encodeURIComponent(slug)}`,
+      { headers: { "X-API-KEY": env.OPENSEA_API_KEY } }
+    );
 
     const data = await res.json();
-    return new Response(JSON.stringify(data), {
-      headers: {
-        "content-type": "application/json",
-        "cache-control": "public, max-age=60" // هر ۶۰ ثانیه یک‌بار کش تازه می‌شود
-      }
-    });
+
+    if (!res.ok) {
+      return json(
+        { error: data?.errors?.[0] || data?.error || "دراپ پیدا نشد یا اسلاگ اشتباه است" },
+        res.status
+      );
+    }
+
+    return json(data, 200, "public, max-age=20");
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { "content-type": "application/json" }
-    });
+    return json({ error: "خطا در ارتباط با OpenSea: " + err.message }, 502);
   }
+}
+
+function json(body, status = 200, cache) {
+  const headers = { "content-type": "application/json" };
+  if (cache) headers["cache-control"] = cache;
+  return new Response(JSON.stringify(body), { status, headers });
 }
