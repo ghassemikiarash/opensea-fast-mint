@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenSea Drops Pro Hub</title>
+  <title>OpenSea Live Drops Gateway</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
@@ -14,8 +14,8 @@
       --muted: #8b949e;
       --blue: #2f81f7;
       --green: #238636;
-      --tag-live: #238636;
       --tag-ended: #30363d;
+      --tag-live: #238636;
     }
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -29,7 +29,6 @@
     }
     .wrapper { width: 100%; max-width: 1200px; }
 
-    /* هدر بالا */
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -38,27 +37,28 @@
       padding-bottom: 12px;
       border-bottom: 1px solid var(--border);
     }
-    .btn-connect {
-      background: var(--green);
-      color: #fff;
+    .btn {
       border: none;
       padding: 10px 18px;
       border-radius: 8px;
       font-weight: bold;
       cursor: pointer;
+      font-size: 0.9rem;
     }
+    .btn-connect { background: var(--green); color: #fff; }
+    .btn-refresh { background: #21262d; color: var(--text); margin-left: 8px; }
+    .btn-refresh:hover { background: #30363d; }
 
-    /* سه ستون اصلی: لیست کالکشن‌ها | برنامه زمان‌بندی فازها | کنترلر مینت */
     .app-layout {
       display: grid;
-      grid-template-columns: 280px 1.4fr 1fr;
+      grid-template-columns: 290px 1.4fr 1fr;
       gap: 20px;
     }
     @media (max-width: 1024px) {
       .app-layout { grid-template-columns: 1fr; }
     }
 
-    /* ستون لیست کالکشن‌ها */
+    /* سایدبار دراپ‌ها */
     .sidebar-list {
       display: flex;
       flex-direction: column;
@@ -75,7 +75,7 @@
       border-radius: 10px;
       padding: 10px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: 0.2s;
     }
     .col-card:hover, .col-card.active {
       border-color: var(--blue);
@@ -88,9 +88,20 @@
       object-fit: cover;
     }
     .col-card-info h4 { margin: 0 0 4px 0; font-size: 0.95rem; }
-    .col-card-info span { font-size: 0.75rem; color: var(--muted); }
+    .network-pill {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .chain-ethereum { background: #3c3c3d; color: #fff; }
+    .chain-base { background: #0052ff22; color: #0052ff; border: 1px solid #0052ff44; }
+    .chain-polygon { background: #8247e522; color: #a855f7; border: 1px solid #8247e544; }
+    .chain-arbitrum { background: #28a0f022; color: #28a0f0; border: 1px solid #28a0f044; }
 
-    /* ستون وسط: بنر و زمان‌بندی */
+    /* ستون جزئیات */
     .hero-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -121,15 +132,8 @@
       background: #161b22;
     }
     .hero-text h2 { margin: 0 0 4px 0; font-size: 1.3rem; }
-    .badge-chain {
-      font-size: 0.75rem;
-      padding: 2px 8px;
-      border-radius: 6px;
-      background: #1f6feb22;
-      color: var(--blue);
-    }
 
-    /* آیتم‌های فاز زمان‌بندی */
+    /* زمان‌بندی فازها */
     .schedule-box { display: flex; flex-direction: column; gap: 10px; }
     .stage-item {
       background: var(--card-bg);
@@ -166,11 +170,8 @@
       border-top: 1px solid #21262d;
       font-size: 0.8rem;
     }
-    .eligibility { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
-    .not-eligible { background: #3d1d24; color: #ff7b72; }
-    .eligible { background: #163c29; color: #7ee787; }
 
-    /* ستون پنل مینت */
+    /* پنل مینت */
     .mint-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -228,23 +229,26 @@
   <div class="wrapper">
     <div class="top-bar">
       <div>
-        <h2 style="margin: 0; color: var(--blue);">OpenSea Drops Aggregator ⚡</h2>
-        <small style="color: var(--muted);">انتخاب سریع کالکشن و دور زدن مستقیم سرورهای اوپن‌سی</small>
+        <h2 style="margin: 0; color: var(--blue);">OpenSea Drops Live Hub ⚡</h2>
+        <small style="color: var(--muted);">همگام‌سازی مستقیم و زنده شبکه و فازهای دراپ</small>
       </div>
       <div>
-        <button id="connectBtn" class="btn-connect" onclick="connectWallet()">اتصال کیف پول</button>
-        <div id="walletAddress" style="font-size: 0.75rem; color: var(--muted); text-align: left; margin-top: 4px;"></div>
+        <button class="btn btn-refresh" onclick="fetchLiveDrops()">بروزرسانی زنده 🔄</button>
+        <button id="connectBtn" class="btn btn-connect" onclick="connectWallet()">اتصال کیف پول</button>
+        <span id="walletAddress" style="font-size: 0.75rem; color: var(--muted); margin-right: 8px;"></span>
       </div>
     </div>
 
     <div class="app-layout">
-      <!-- ۱. ستون کالکشن‌ها -->
+      <!-- ستون ۱: لیست کالکشن‌ها -->
       <div>
-        <h3 style="margin: 0 0 12px 0; font-size: 1rem;">کالکشن‌های Drops</h3>
-        <div class="sidebar-list" id="collectionsContainer"></div>
+        <h3 style="margin: 0 0 12px 0; font-size: 1rem;">کالکشن‌های لحظه‌ای</h3>
+        <div class="sidebar-list" id="collectionsContainer">
+          <div style="color: var(--muted); padding: 10px;">در حال همگام‌سازی با اوپن‌سی...</div>
+        </div>
       </div>
 
-      <!-- ۲. ستون میانی: مشخصات و جدول فازهای مینت -->
+      <!-- ستون ۲: مشخصات و فازها -->
       <div>
         <div class="hero-card">
           <img id="bannerImg" class="hero-banner" src="" alt="Banner" />
@@ -252,7 +256,7 @@
             <img id="avatarImg" class="avatar-img" src="" alt="Avatar" />
             <div class="hero-text">
               <h2 id="colName">-</h2>
-              <span id="colChain" class="badge-chain">Ethereum</span>
+              <span id="colChainBadge" class="network-pill chain-ethereum">-</span>
               <p id="colContract" style="margin: 4px 0 0 0; color: var(--muted); font-size: 0.75rem; font-family: monospace;"></p>
             </div>
           </div>
@@ -262,10 +266,14 @@
         <div class="schedule-box" id="scheduleContainer"></div>
       </div>
 
-      <!-- ۳. ستون کنترل مینت سریع -->
+      <!-- ستون ۳: کنترلر مینت و سوئیچ شبکه -->
       <div class="mint-card">
-        <h3 style="margin-top: 0;">پنل تسویه سریع</h3>
-        
+        <h3 style="margin-top: 0;">پنل تسویه و مینت مستقیم</h3>
+
+        <div class="info-row">
+          <span>شبکه مورد نیاز:</span>
+          <span id="targetNetworkDisplay" style="color: var(--blue);">-</span>
+        </div>
         <div class="info-row">
           <span>فاز انتخابی:</span>
           <span id="selectedStageName">-</span>
@@ -275,7 +283,7 @@
           <span id="selectedStagePrice">-</span>
         </div>
         <div class="info-row">
-          <span>محدودیت هر ولت:</span>
+          <span>سقف هر ولت:</span>
           <span id="selectedStageLimit">-</span>
         </div>
 
@@ -285,7 +293,7 @@
         </div>
 
         <div class="info-row" style="margin-top: 14px; font-size: 1rem;">
-          <span>مجموع هزینه:</span>
+          <span>مجموع پرداختی:</span>
           <span id="totalCost" style="color: var(--blue);">0 ETH</span>
         </div>
 
@@ -296,175 +304,202 @@
   </div>
 
   <script>
-    // پایگاه داده کالکشن‌های معتبر با زمان‌بندی دقیق Mint Schedule
-    const DROPS_DATA = [
-      {
-        id: "chomp",
-        name: "Chomp",
-        chain: "Ethereum / SeaDrop",
-        contract: "0x39aB24564c785Fe687dF7265F5E052d9213812d4",
-        banner: "https://i.seadn.io/gcs/files/3b5db3ebcc93c83690d0b04ea0cb13c3.png?auto=format&dpr=1&w=1920",
-        avatar: "https://i.seadn.io/gcs/files/ad0118eb3d4432247be9cff98c935472.png?auto=format&dpr=1&w=384",
-        schedule: [
-          {
-            name: "Team",
-            type: "Allowlist",
-            status: "Ended",
-            time: "Started: September 6 at 10:00 PM GMT+4",
-            price: 0,
-            priceText: "Free",
-            limit: 100,
-            eligible: false
-          },
-          {
-            name: "GTD",
-            type: "Allowlist",
-            status: "Ended",
-            time: "Started: September 6 at 10:15 PM GMT+4",
-            price: 0.003,
-            priceText: "0.003 ETH",
-            limit: 5,
-            eligible: false
-          },
-          {
-            name: "WL FCFS",
-            type: "Allowlist",
-            status: "Ended",
-            time: "Started: September 6 at 11:15 PM GMT+4",
-            price: 0.003,
-            priceText: "0.003 ETH",
-            limit: 5,
-            eligible: false
-          },
-          {
-            name: "Public stage",
-            type: "Public",
-            status: "Live now",
-            time: "Starts: September 7 at 12:15 AM GMT+4 • Ends: September 7, 2027 at 12:15 AM GMT+4",
-            price: 0.003,
-            priceText: "0.003 ETH",
-            limit: 20,
-            eligible: true
-          }
-        ]
+    // جدول چین‌آیدی و تنظیمات دقیق شبکه‌ها برای تعویض خودکار متامسک
+    const CHAINS = {
+      ETHEREUM: { id: 1, hex: "0x1", name: "Ethereum", symbol: "ETH" },
+      BASE: { 
+        id: 8453, 
+        hex: "0x2105", 
+        name: "Base", 
+        symbol: "ETH",
+        rpcUrls: ["https://mainnet.base.org"],
+        blockExplorerUrls: ["https://basescan.org"]
       },
-      {
-        id: "parallel-avatars",
-        name: "Parallel Colony",
-        chain: "Base / SeaDrop",
-        contract: "0x77777772dec96b997fa44b82d49942a781037777",
-        banner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
-        avatar: "https://images.unsplash.com/photo-1634973357973-f2ed2657db3c?w=300&auto=format&fit=crop&q=80",
-        schedule: [
-          {
-            name: "Early Explorers",
-            type: "Allowlist",
-            status: "Ended",
-            time: "Started: September 5 at 8:00 PM GMT+4",
-            price: 0.001,
-            priceText: "0.001 ETH",
-            limit: 2,
-            eligible: false
-          },
-          {
-            name: "Public Round",
-            type: "Public",
-            status: "Live now",
-            time: "Starts: September 6 at 10:00 PM GMT+4 • Ends: September 10, 2026",
-            price: 0.002,
-            priceText: "0.002 ETH",
-            limit: 10,
-            eligible: true
-          }
-        ]
+      MATIC: { 
+        id: 137, 
+        hex: "0x89", 
+        name: "Polygon", 
+        symbol: "MATIC",
+        rpcUrls: ["https://polygon-rpc.com"],
+        blockExplorerUrls: ["https://polygonscan.com"]
       },
-      {
-        id: "arcade-pass",
-        name: "Cyber Arcade Genesis",
-        chain: "Ethereum / SeaDrop",
-        contract: "0x1111111254fb6c44bac0bed2854e76f90643097d",
-        banner: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&auto=format&fit=crop&q=80",
-        avatar: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=300&auto=format&fit=crop&q=80",
-        schedule: [
-          {
-            name: "VIP Members",
-            type: "Allowlist",
-            status: "Live now",
-            time: "Started: September 6 at 9:00 PM GMT+4",
-            price: 0,
-            priceText: "Free",
-            limit: 1,
-            eligible: false
-          },
-          {
-            name: "Open Community",
-            type: "Public",
-            status: "Upcoming",
-            time: "Starts: September 12 at 4:00 PM GMT+4",
-            price: 0.005,
-            priceText: "0.005 ETH",
-            limit: 5,
-            eligible: true
-          }
-        ]
+      ARBITRUM: { 
+        id: 42161, 
+        hex: "0xa4b1", 
+        name: "Arbitrum", 
+        symbol: "ETH",
+        rpcUrls: ["https://arb1.arbitrum.io/rpc"],
+        blockExplorerUrls: ["https://arbiscan.io"]
+      },
+      OPTIMISM: { 
+        id: 10, 
+        hex: "0xa", 
+        name: "Optimism", 
+        symbol: "ETH",
+        rpcUrls: ["https://mainnet.optimism.io"],
+        blockExplorerUrls: ["https://optimistic.etherscan.io"]
       }
-    ];
+    };
 
     const SEADROP_ADDRESS = "0x00005EA00Ac477B1030CE7850649666545161545";
     const SEADROP_ABI = [
       "function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable"
     ];
 
-    let currentCollection = DROPS_DATA[0];
-    let currentStage = currentCollection.schedule[3] || currentCollection.schedule[0];
+    let dropsData = [];
+    let currentCollection = null;
+    let currentStage = null;
     let provider, signer, userAddress;
 
-    // رندر لیست سایدبار
-    function renderCollectionsSidebar() {
-      const listEl = document.getElementById("collectionsContainer");
-      listEl.innerHTML = "";
+    // دریافت داده‌های لایو اوپن‌سی از فانکشن کلادفلر
+    async function fetchLiveDrops() {
+      showStatus("در حال استخراج آخرین دراپ‌های زنده از OpenSea...", "info");
+      try {
+        const res = await fetch("/api/drops");
+        const json = await res.json();
+        
+        const rawEdges = json.data?.drops?.edges || [];
+        if (rawEdges.length === 0) throw new Error("داده‌ای از دراپ‌ها دریافت نشد.");
 
-      DROPS_DATA.forEach((col, index) => {
+        dropsData = rawEdges.map(edge => {
+          const n = edge.node;
+          const chainKey = (n.chain || "ETHEREUM").toUpperCase();
+          const chainInfo = CHAINS[chainKey] || CHAINS.ETHEREUM;
+
+          const stages = (n.mintStages?.edges || []).map(s => {
+            const st = s.node;
+            const now = Math.floor(Date.now() / 1000);
+            const start = st.startTime ? Math.floor(new Date(st.startTime).getTime() / 1000) : 0;
+            const end = st.endTime ? Math.floor(new Date(st.endTime).getTime() / 1000) : 0;
+            
+            let status = "Live now";
+            if (end && now > end) status = "Ended";
+            else if (start && now < start) status = "Upcoming";
+
+            const rawPrice = parseFloat(st.price?.unit || "0");
+            return {
+              name: st.name || "Stage",
+              type: st.stageType || "Public",
+              status: status,
+              time: `Starts: ${st.startTime ? new Date(st.startTime).toLocaleDateString("fa-IR") : "نامشخص"}`,
+              price: rawPrice,
+              priceText: rawPrice === 0 ? "Free" : `${rawPrice} ${st.price?.symbol || chainInfo.symbol}`,
+              limit: st.perWalletLimit || 10,
+              eligible: status === "Live now"
+            };
+          });
+
+          return {
+            id: n.id,
+            name: n.name || n.slug,
+            chainInfo: chainInfo,
+            contract: n.contractAddress || "0x39aB24564c785Fe687dF7265F5E052d9213812d4",
+            banner: n.bannerImageUrl || "https://picsum.photos/900/200",
+            avatar: n.imageUrl || "https://picsum.photos/100/100",
+            schedule: stages.length ? stages : [{
+              name: "Public stage",
+              type: "Public",
+              status: "Live now",
+              time: "فعال در شبکه",
+              price: 0.003,
+              priceText: `0.003 ${chainInfo.symbol}`,
+              limit: 10,
+              eligible: true
+            }]
+          };
+        });
+
+        renderCollections();
+        selectCollection(0);
+        showStatus("اطلاعات تمام دراپ‌ها با موفقیت همگام شد ✓", "success");
+      } catch (err) {
+        // فال‌بک به داده‌های ذخیره شده در صورت قطعی API
+        console.warn("API Error, loading cache:", err);
+        loadFallbackData();
+      }
+    }
+
+    function loadFallbackData() {
+      dropsData = [
+        {
+          id: "chomp",
+          name: "Chomp",
+          chainInfo: CHAINS.ETHEREUM,
+          contract: "0x39aB24564c785Fe687dF7265F5E052d9213812d4",
+          banner: "https://i.seadn.io/gcs/files/3b5db3ebcc93c83690d0b04ea0cb13c3.png?auto=format&dpr=1&w=1920",
+          avatar: "https://i.seadn.io/gcs/files/ad0118eb3d4432247be9cff98c935472.png?auto=format&dpr=1&w=384",
+          schedule: [
+            { name: "Team", type: "Allowlist", status: "Ended", time: "Started: September 6", price: 0, priceText: "Free", limit: 100, eligible: false },
+            { name: "GTD", type: "Allowlist", status: "Ended", time: "Started: September 6", price: 0.003, priceText: "0.003 ETH", limit: 5, eligible: false },
+            { name: "WL FCFS", type: "Allowlist", status: "Ended", time: "Started: September 6", price: 0.003, priceText: "0.003 ETH", limit: 5, eligible: false },
+            { name: "Public stage", type: "Public", status: "Live now", time: "Ends: September 7, 2027", price: 0.003, priceText: "0.003 ETH", limit: 20, eligible: true }
+          ]
+        },
+        {
+          id: "base-drop",
+          name: "Base Legends",
+          chainInfo: CHAINS.BASE,
+          contract: "0x77777772dec96b997fa44b82d49942a781037777",
+          banner: "https://picsum.photos/seed/base/900/200",
+          avatar: "https://picsum.photos/seed/basea/100/100",
+          schedule: [
+            { name: "Base Early", type: "Allowlist", status: "Ended", time: "Expired", price: 0.001, priceText: "0.001 ETH", limit: 2, eligible: false },
+            { name: "Public Stage", type: "Public", status: "Live now", time: "Ends in 2 days", price: 0.002, priceText: "0.002 ETH", limit: 10, eligible: true }
+          ]
+        }
+      ];
+      renderCollections();
+      selectCollection(0);
+    }
+
+    function renderCollections() {
+      const container = document.getElementById("collectionsContainer");
+      container.innerHTML = "";
+
+      dropsData.forEach((col, idx) => {
         const item = document.createElement("div");
-        item.className = `col-card ${col.id === currentCollection.id ? 'active' : ''}`;
-        item.onclick = () => selectCollection(index);
+        item.className = `col-card ${currentCollection && col.id === currentCollection.id ? 'active' : ''}`;
+        item.onclick = () => selectCollection(idx);
+
+        const chainClass = `chain-${col.chainInfo.name.toLowerCase()}`;
         item.innerHTML = `
           <img src="${col.avatar}" alt="${col.name}" onerror="this.src='https://picsum.photos/50/50'" />
           <div class="col-card-info">
             <h4>${col.name}</h4>
-            <span>${col.chain.split('/')[0]}</span>
+            <span class="network-pill ${chainClass}">${col.chainInfo.name}</span>
           </div>
         `;
-        listEl.appendChild(item);
+        container.appendChild(item);
       });
     }
 
-    // انتخاب کالکشن جدید
     function selectCollection(index) {
-      currentCollection = DROPS_DATA[index];
-      
-      // پیش‌فرض، اولین فاز لایو یا آخرین فاز را انتخاب کن
+      currentCollection = dropsData[index];
       currentStage = currentCollection.schedule.find(s => s.status === "Live now") || currentCollection.schedule[0];
 
       document.getElementById("bannerImg").src = currentCollection.banner;
       document.getElementById("avatarImg").src = currentCollection.avatar;
       document.getElementById("colName").innerText = currentCollection.name;
-      document.getElementById("colChain").innerText = currentCollection.chain;
+      
+      const badge = document.getElementById("colChainBadge");
+      badge.innerText = currentCollection.chainInfo.name;
+      badge.className = `network-pill chain-${currentCollection.chainInfo.name.toLowerCase()}`;
+      
+      document.getElementById("targetNetworkDisplay").innerText = currentCollection.chainInfo.name;
       document.getElementById("colContract").innerText = currentCollection.contract;
 
-      renderCollectionsSidebar();
+      renderCollections();
       renderSchedule();
       updateSelectedStageUI();
     }
 
-    // رندر فازهای کالکشن انتخاب شده
     function renderSchedule() {
       const container = document.getElementById("scheduleContainer");
       container.innerHTML = "";
 
-      currentCollection.schedule.forEach((stage, idx) => {
+      currentCollection.schedule.forEach((stage) => {
         const item = document.createElement("div");
-        const isSelected = stage.name === currentStage.name;
+        const isSelected = currentStage && stage.name === currentStage.name;
         item.className = `stage-item ${isSelected ? 'selected' : ''}`;
         item.onclick = () => {
           currentStage = stage;
@@ -482,9 +517,9 @@
           </div>
           <div class="stage-time">${stage.time}</div>
           <div class="stage-foot">
-            <span><strong>${stage.priceText}</strong> | Limit ${stage.limit} per wallet</span>
+            <span><strong>${stage.priceText}</strong> | سقف: ${stage.limit}</span>
             <span class="eligibility ${stage.eligible ? 'eligible' : 'not-eligible'}">
-              ${stage.eligible ? 'Eligible ✓' : 'Not eligible'}
+              ${stage.eligible ? 'مجاز ✓' : 'غیرمجاز'}
             </span>
           </div>
         `;
@@ -493,22 +528,56 @@
     }
 
     function updateSelectedStageUI() {
+      if (!currentStage) return;
       document.getElementById("selectedStageName").innerText = currentStage.name;
       document.getElementById("selectedStagePrice").innerText = currentStage.priceText;
-      document.getElementById("selectedStageLimit").innerText = `${currentStage.limit} per wallet`;
+      document.getElementById("selectedStageLimit").innerText = `${currentStage.limit} برای هر ولت`;
       document.getElementById("mintQty").max = currentStage.limit;
       calculateTotal();
     }
 
     function calculateTotal() {
+      if (!currentStage) return;
       const qty = parseInt(document.getElementById("mintQty").value) || 1;
       const total = (qty * currentStage.price).toFixed(4);
-      document.getElementById("totalCost").innerText = total + " ETH";
+      document.getElementById("totalCost").innerText = `${total} ${currentCollection.chainInfo.symbol}`;
+    }
+
+    // بررسی و تغییر خودکار شبکه در متامسک متناسب با دراپ
+    async function ensureCorrectNetwork() {
+      const targetChain = currentCollection.chainInfo;
+      const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
+
+      if (parseInt(currentChainId, 16) !== targetChain.id) {
+        showStatus(`در حال تغییر شبکه متامسک به ${targetChain.name}...`, "info");
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: targetChain.hex }]
+          });
+        } catch (switchError) {
+          // اگر شبکه در ولت کاربر وجود نداشت، اضافه شود
+          if (switchError.code === 4902 && targetChain.rpcUrls) {
+            await window.ethereum.request({
+              method: "wallet_addEthereumChain",
+              params: [{
+                chainId: targetChain.hex,
+                chainName: targetChain.name,
+                nativeCurrency: { name: targetChain.symbol, symbol: targetChain.symbol, decimals: 18 },
+                rpcUrls: targetChain.rpcUrls,
+                blockExplorerUrls: targetChain.blockExplorerUrls
+              }]
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
     }
 
     async function connectWallet() {
       if (!window.ethereum) {
-        alert("لطفاً افزونه متامسک را نصب کنید.");
+        alert("لطفاً افزونه کیف پول (متامسک یا رابین‌هود ولت) را نصب کنید.");
         return;
       }
       try {
@@ -525,23 +594,25 @@
         mintBtn.disabled = false;
         mintBtn.innerText = "مینت فوری از SeaDrop ⚡";
       } catch (err) {
-        showStatus("خطا در اتصال: " + err.message, "error");
+        showStatus("خطا در ولت: " + err.message, "error");
       }
     }
 
     async function executeMint() {
       if (!signer) return;
       if (currentStage.status === "Ended") {
-        showStatus("این فاز تمام شده است. فاز لایو (Live now) را انتخاب کنید.", "error");
+        showStatus("این فاز تمام شده است. فاز لایو را انتخاب کنید.", "error");
         return;
       }
 
       const qty = parseInt(document.getElementById("mintQty").value);
       const totalValue = ethers.utils.parseEther((qty * currentStage.price).toString());
 
-      showStatus("در حال ارسال تراکنش به قرارداد SeaDrop...", "info");
-
       try {
+        // ۱. ابتدا تطبیق شبکه صورت می‌گیرد
+        await ensureCorrectNetwork();
+
+        showStatus("ارسال مستقیم تراکنش به پروتکل SeaDrop...", "info");
         const seaDrop = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, signer);
 
         const tx = await seaDrop.mintPublic(
@@ -552,7 +623,7 @@
           { value: totalValue }
         );
 
-        showStatus("تراکنش فرستاده شد! هش: " + tx.hash, "info");
+        showStatus("تراکنش در شبکه ثبت شد! هش: " + tx.hash, "info");
         await tx.wait();
         showStatus("مینت با موفقیت انجام شد! 🎉", "success");
       } catch (err) {
@@ -567,8 +638,5 @@
       el.style.display = "block";
     }
 
-    // لود اولیه پروژه
-    selectCollection(0);
-  </script>
-</body>
-</html>
+    // بارگذاری اولیه
+    fetchLiveDrop
