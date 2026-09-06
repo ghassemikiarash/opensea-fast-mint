@@ -454,7 +454,17 @@ async function executeMint() {
     await tx.wait();
     showStatus("مینت با موفقیت کامل انجام شد! 🎉", "success");
   } catch (err) {
-    showStatus("خطا در تراکنش: " + (err.reason || err.data?.message || err.message), "error");
+    // SeaDrop از custom error استفاده می‌کند، پس ethers v5 اغلب فقط همون
+    // پیام کلی "execution reverted" رو نشون می‌ده. داده‌ی خام رو این‌جا
+    // لاگ می‌کنیم تا حداقل selector خطا رو ببینیم (چهار بایت اول data).
+    console.log("جزئیات کامل خطا:", err);
+    const rawData = err?.data ?? err?.error?.data ?? err?.error?.error?.data;
+    if (rawData) console.log("داده‌ی خام revert (selector چهار بایت اول):", rawData);
+    showStatus(
+      "خطا در تراکنش: " + (err.reason || err.data?.message || err.message) +
+        (rawData ? " — جزئیات بیشتر در Console" : ""),
+      "error"
+    );
   }
 }
 
