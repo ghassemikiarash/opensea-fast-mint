@@ -1,489 +1,469 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenSea Precision Minter ⚡</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <style>
-    :root {
-      --bg: #0b0e14;
-      --card: #161b22;
-      --border: #30363d;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --blue: #2f81f7;
-      --green: #238636;
-      --tag-live: #238636;
-      --tag-ended: #30363d;
-    }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .wrapper { width: 100%; max-width: 1100px; }
-
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .btn {
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    .btn-connect { background: var(--green); color: #fff; }
-    .btn-connect:hover { background: #2ea043; }
-
-    .search-box {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .search-row { display: flex; gap: 10px; }
-    .search-box input {
-      flex: 1;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      color: #fff;
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      outline: none;
-      font-family: monospace;
-    }
-    .search-box input:focus { border-color: var(--blue); }
-    .search-box button {
-      background: var(--blue);
-      color: #fff;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .drop-hero {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .network-pill {
-      font-size: 0.8rem;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-weight: bold;
-      background: #21262d;
-      color: #58a6ff;
-      border: 1px solid #30363d;
-    }
-
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: 20px;
-    }
-    @media (max-width: 800px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
-
-    /* Mint schedule */
-    .schedule-box { display: flex; flex-direction: column; gap: 12px; }
-    .stage-item {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .stage-item:hover, .stage-item.selected {
-      border-color: var(--blue);
-      background: #1a202c;
-    }
-    .stage-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-    .stage-title-wrap { display: flex; align-items: center; gap: 8px; }
-    .stage-name { font-size: 1.05rem; font-weight: bold; }
-    .stage-type { font-size: 0.8rem; color: var(--muted); }
-    .stage-badge {
-      font-size: 0.75rem;
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-weight: bold;
-    }
-    .badge-ended { background: var(--tag-ended); color: var(--muted); }
-    .badge-live { background: var(--tag-live); color: #fff; }
-    .stage-time { font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
-    .stage-foot {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid #21262d;
-      font-size: 0.85rem;
-    }
-    .eligibility-tag {
-      font-size: 0.75rem;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-    .not-eligible { background: #3d1d24; color: #ff7b72; }
-    .eligible { background: #163c29; color: #7ee787; }
-
-    /* پنل تسویه */
-    .mint-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      height: fit-content;
-    }
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 10px 0;
-      font-size: 0.9rem;
-    }
-    .info-row span:first-child { color: var(--muted); }
-    .info-row span:last-child { font-weight: bold; font-family: monospace; }
-    
-    .qty-input {
-      width: 100%;
-      padding: 10px;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: #fff;
-      box-sizing: border-box;
-      margin-top: 6px;
-      text-align: center;
-      font-size: 1rem;
-    }
-    .btn-mint {
-      width: 100%;
-      padding: 14px;
-      background: var(--blue);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 14px;
-      font-size: 1rem;
-    }
-    .btn-mint:disabled { background: #21262d; color: var(--muted); cursor: not-allowed; }
-
-    #status {
-      margin-top: 16px;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      display: none;
-      word-break: break-all;
-    }
-    .success { background: #1b472c; color: #7ee787; }
-    .error { background: #4c1d24; color: #ff7b72; }
-    .info { background: #1f3557; color: #79c0ff; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenSea Precision Minter ⚡</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0b0e14;
+  --card: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --blue: #2f81f7;
+  --green: #238636;
+  --tag-live: #238636;
+  --tag-ended: #30363d;
+}
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.wrapper { width: 100%; max-width: 1100px; }
+.top-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  flex-wrap: wrap; gap: 10px;
+}
+.btn { border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+.btn-connect { background: var(--green); color: #fff; }
+.btn-connect:hover { background: #2ea043; }
+.search-box {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;
+}
+.search-row { display: flex; gap: 10px; }
+.search-box input {
+  flex: 1; background: #0d1117; border: 1px solid var(--border); color: #fff;
+  padding: 12px 14px; border-radius: 8px; font-size: 0.9rem; outline: none; font-family: monospace;
+}
+.search-box input:focus { border-color: var(--blue); }
+.search-box button {
+  background: var(--blue); color: #fff; border: none; padding: 12px 20px;
+  border-radius: 8px; font-weight: bold; cursor: pointer; white-space: nowrap;
+}
+.search-box button:disabled { background: #21262d; color: var(--muted); cursor: not-allowed; }
+.drop-hero {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 18px; margin-bottom: 20px; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.network-pill {
+  font-size: 0.8rem; padding: 4px 10px; border-radius: 6px; font-weight: bold;
+  background: #21262d; color: #58a6ff; border: 1px solid #30363d;
+}
+.main-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+@media (max-width: 800px) { .main-grid { grid-template-columns: 1fr; } }
+.schedule-box { display: flex; flex-direction: column; gap: 12px; }
+.stage-item {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; cursor: pointer; transition: 0.2s;
+}
+.stage-item:hover, .stage-item.selected { border-color: var(--blue); background: #1a202c; }
+.stage-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.stage-title-wrap { display: flex; align-items: center; gap: 8px; }
+.stage-name { font-size: 1.05rem; font-weight: bold; }
+.stage-type { font-size: 0.8rem; color: var(--muted); }
+.stage-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; font-weight: bold; }
+.badge-ended { background: var(--tag-ended); color: var(--muted); }
+.badge-live { background: var(--tag-live); color: #fff; }
+.badge-upcoming { background: #3d3200; color: #e3b341; }
+.stage-time { font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+.stage-foot {
+  display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid #21262d; font-size: 0.85rem;
+}
+.mint-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; height: fit-content; }
+.info-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 0.9rem; }
+.info-row span:first-child { color: var(--muted); }
+.info-row span:last-child { font-weight: bold; font-family: monospace; }
+.qty-input {
+  width: 100%; padding: 10px; background: #0d1117; border: 1px solid var(--border);
+  border-radius: 6px; color: #fff; box-sizing: border-box; margin-top: 6px;
+  text-align: center; font-size: 1rem;
+}
+.btn-mint {
+  width: 100%; padding: 14px; background: var(--blue); color: white; border: none;
+  border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 14px; font-size: 1rem;
+}
+.btn-mint:disabled { background: #21262d; color: var(--muted); cursor: not-allowed; }
+#status {
+  margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 0.85rem;
+  display: none; word-break: break-all;
+}
+.success { background: #1b472c; color: #7ee787; }
+.error { background: #4c1d24; color: #ff7b72; }
+.info { background: #1f3557; color: #79c0ff; }
+.empty-hint { color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; }
+</style>
 </head>
 <body>
+<div class="wrapper">
 
-  <div class="wrapper">
-    <div class="top-bar">
-      <div>
-        <h2 style="margin: 0; color: var(--blue);">OpenSea Instant Minter ⚡</h2>
-        <small style="color: var(--muted);">سازگار با Rabby Auto-Switch و کانترکت SeaDrop</small>
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <button id="connectBtn" class="btn btn-connect" onclick="connectWallet()">اتصال کیف پول</button>
-        <span id="walletAddress" style="font-size: 0.75rem; color: var(--muted);"></span>
-      </div>
+  <div class="top-bar">
+    <div>
+      <h2 style="margin: 0; color: var(--blue);">OpenSea Precision Minter ⚡</h2>
+      <small style="color: var(--muted);">اطلاعات دراپ از API رسمی OpenSea خوانده می‌شود</small>
     </div>
-
-    <!-- فیلد ورودی -->
-    <div class="search-box">
-      <label style="font-size: 0.85rem; color: var(--muted);">لینک اکسپلورر، تگ HTML یا آدرس کانترکت:</label>
-      <div class="search-row">
-        <input type="text" id="rawInput" placeholder="پیست کردن لینک یا تگ..." value="https://robinhoodchain.blockscout.com/address/0x7727a8eb961197149ffbe87bdcf93551848ab672" />
-        <button onclick="parseAndLoad()">شناسایی و تنظیم</button>
-      </div>
-    </div>
-
-    <div id="status"></div>
-
-    <div class="drop-hero" id="heroSection">
-      <div>
-        <h3 id="contractTitle" style="margin: 0 0 6px 0;">قرارداد آماده مینت ✓</h3>
-        <span id="contractDisplay" style="font-family: monospace; font-size: 0.8rem; color: var(--muted);">قرارداد: 0x7727a8eb961197149ffbe87bdcf93551848ab672</span>
-      </div>
-      <div>
-        <span id="networkBadge" class="network-pill">مدیریت شبکه: اتوماتیک توسط Rabby</span>
-      </div>
-    </div>
-
-    <div class="main-grid">
-      <!-- Mint schedule -->
-      <div>
-        <h3 style="margin: 0 0 12px 0;">Mint schedule</h3>
-        <div class="schedule-box" id="scheduleContainer"></div>
-      </div>
-
-      <!-- پنل مینت -->
-      <div class="mint-card">
-        <h3 style="margin-top: 0;">کنترلر مینت مستقیم</h3>
-
-        <div class="info-row">
-          <span>فاز انتخابی:</span>
-          <span id="selectedStageName">Public stage</span>
-        </div>
-        <div class="info-row">
-          <span>قیمت واحد:</span>
-          <span id="selectedStagePrice">0.003 ETH</span>
-        </div>
-        <div class="info-row">
-          <span>محدودیت هر ولت:</span>
-          <span id="selectedStageLimit">20 per wallet</span>
-        </div>
-        <div class="info-row">
-          <span>وضعیت صلاحیت:</span>
-          <span id="eligibilityDisplay" style="color: #7ee787;">Eligible ✓</span>
-        </div>
-
-        <div style="margin-top: 12px;">
-          <label style="font-size: 0.8rem; color: var(--muted);">تعداد برای مینت:</label>
-          <input type="number" id="mintQty" class="qty-input" value="1" min="1" max="20" oninput="calculateTotal()" />
-        </div>
-
-        <div class="info-row" style="margin-top: 14px; font-size: 1rem;">
-          <span>مجموع پرداخت:</span>
-          <span id="totalCost" style="color: var(--blue);">0.003 ETH</span>
-        </div>
-
-        <button id="mintBtn" class="btn-mint" onclick="executeMint()" disabled>کیف پول وصل نیست</button>
-      </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button id="connectBtn" class="btn btn-connect" onclick="connectWallet()">اتصال کیف پول</button>
+      <span id="walletAddress" style="font-size: 0.75rem; color: var(--muted);"></span>
     </div>
   </div>
 
-  <script>
-    // برنامه فازهای مینت
-    const MINT_SCHEDULE = [
-      {
-        name: "Team",
-        type: "Allowlist",
-        status: "Ended",
-        time: "Started: September 6 at 10:00 PM GMT+4",
-        price: 0,
-        priceText: "Free",
-        limit: 100,
-        limitText: "Limit 100 per wallet",
-        eligible: false
-      },
-      {
-        name: "GTD",
-        type: "Allowlist",
-        status: "Ended",
-        time: "Started: September 6 at 10:15 PM GMT+4",
-        price: 0.003,
-        priceText: "0.003 ETH",
-        limit: 5,
-        limitText: "Limit 5 per wallet",
-        eligible: false
-      },
-      {
-        name: "WL FCFS",
-        type: "Allowlist",
-        status: "Ended",
-        time: "Started: September 6 at 11:15 PM GMT+4",
-        price: 0.003,
-        priceText: "0.003 ETH",
-        limit: 5,
-        limitText: "Limit 5 per wallet",
-        eligible: false
-      },
-      {
-        name: "Public stage",
-        type: "Public",
-        status: "Live now",
-        time: "Starts: September 7 at 12:15 AM GMT+4 • Ends: September 7, 2027 at 12:15 AM GMT+4",
-        price: 0.003,
-        priceText: "0.003 ETH",
-        limit: 20,
-        limitText: "Limit 20 per wallet",
-        eligible: true
-      }
-    ];
+  <div class="search-box">
+    <label style="font-size: 0.85rem; color: var(--muted);">
+      لینک کالکشن اپن‌سی (مثلاً https://opensea.io/collection/chompnft/overview) یا فقط اسلاگ آن:
+    </label>
+    <div class="search-row">
+      <input type="text" id="rawInput" placeholder="https://opensea.io/collection/..." />
+      <button id="loadBtn" onclick="loadDropFromInput()">دریافت اطلاعات دراپ</button>
+    </div>
+  </div>
 
-    const SEADROP_ADDRESS = "0x00005EA00Ac477B1030CE7850649666545161545";
-    const SEADROP_ABI = [
-      "function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable"
-    ];
+  <div id="status"></div>
 
-    let detectedContract = "0x7727a8eb961197149ffbe87bdcf93551848ab672";
-    let selectedStage = MINT_SCHEDULE[3]; // پیش‌فرض فاز Live now
-    let provider, signer, userAddress;
+  <div class="drop-hero" id="heroSection" style="display:none;">
+    <div>
+      <h3 id="contractTitle" style="margin: 0 0 6px 0;">—</h3>
+      <span id="contractDisplay" style="font-family: monospace; font-size: 0.8rem; color: var(--muted);"></span>
+    </div>
+    <div>
+      <span id="networkBadge" class="network-pill">—</span>
+    </div>
+  </div>
 
-    function renderScheduleUI() {
-      const container = document.getElementById("scheduleContainer");
-      container.innerHTML = "";
+  <div class="main-grid" id="mainGrid" style="display:none;">
+    <div>
+      <h3 style="margin: 0 0 12px 0;">Mint schedule</h3>
+      <div class="schedule-box" id="scheduleContainer"></div>
+    </div>
 
-      MINT_SCHEDULE.forEach((stage) => {
-        const item = document.createElement("div");
-        const isSelected = stage.name === selectedStage.name;
-        item.className = `stage-item ${isSelected ? 'selected' : ''}`;
-        item.onclick = () => selectStage(stage);
+    <div class="mint-card">
+      <h3 style="margin-top: 0;">کنترلر مینت مستقیم</h3>
+      <div class="info-row"><span>فاز انتخابی:</span><span id="selectedStageName">—</span></div>
+      <div class="info-row"><span>قیمت واحد:</span><span id="selectedStagePrice">—</span></div>
+      <div class="info-row"><span>محدودیت هر ولت:</span><span id="selectedStageLimit">—</span></div>
+      <div style="margin-top: 12px;">
+        <label style="font-size: 0.8rem; color: var(--muted);">تعداد برای مینت:</label>
+        <input type="number" id="mintQty" class="qty-input" value="1" min="1" oninput="calculateTotal()" />
+      </div>
+      <div class="info-row" style="margin-top: 14px; font-size: 1rem;">
+        <span>مجموع پرداخت:</span><span id="totalCost" style="color: var(--blue);">—</span>
+      </div>
+      <button id="mintBtn" class="btn-mint" onclick="executeMint()" disabled>ابتدا کیف پول را وصل کن</button>
+    </div>
+  </div>
 
-        item.innerHTML = `
-          <div class="stage-top">
-            <div class="stage-title-wrap">
-              <span class="stage-name">${stage.name}</span>
-              <span class="stage-type">${stage.type}</span>
-            </div>
-            <span class="stage-badge ${stage.status === 'Live now' ? 'badge-live' : 'badge-ended'}">${stage.status}</span>
-          </div>
-          <div class="stage-time">${stage.time}</div>
-          <div class="stage-foot">
-            <span><strong>${stage.priceText}</strong> | ${stage.limitText}</span>
-            <span class="eligibility-tag ${stage.eligible ? 'eligible' : 'not-eligible'}">
-              ${stage.eligible ? 'Eligible ✓' : 'Not eligible'}
-            </span>
-          </div>
-        `;
-        container.appendChild(item);
-      });
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// نگاشت نام زنجیره‌ای که OpenSea برمی‌گرداند به chainId هگز، برای سوییچ
+// خودکار شبکه‌ی کیف پول. اگر دراپی از شبکه‌ای غیر از این‌ها بود، اینجا
+// اضافه کن.
+// ---------------------------------------------------------------------
+const CHAINS = {
+  ethereum: { chainIdHex: "0x1", chainName: "Ethereum Mainnet", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://eth.llamarpc.com"], blockExplorerUrls: ["https://etherscan.io"] },
+  base:     { chainIdHex: "0x2105", chainName: "Base", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://mainnet.base.org"], blockExplorerUrls: ["https://basescan.org"] },
+  matic:    { chainIdHex: "0x89", chainName: "Polygon", nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 }, rpcUrls: ["https://polygon-rpc.com"], blockExplorerUrls: ["https://polygonscan.com"] },
+  polygon:  { chainIdHex: "0x89", chainName: "Polygon", nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 }, rpcUrls: ["https://polygon-rpc.com"], blockExplorerUrls: ["https://polygonscan.com"] },
+  arbitrum: { chainIdHex: "0xa4b1", chainName: "Arbitrum One", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://arb1.arbitrum.io/rpc"], blockExplorerUrls: ["https://arbiscan.io"] },
+  optimism: { chainIdHex: "0xa", chainName: "OP Mainnet", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://mainnet.optimism.io"], blockExplorerUrls: ["https://optimistic.etherscan.io"] },
+  avalanche:{ chainIdHex: "0xa86a", chainName: "Avalanche C-Chain", nativeCurrency: { name: "AVAX", symbol: "AVAX", decimals: 18 }, rpcUrls: ["https://api.avax.network/ext/bc/C/x"], blockExplorerUrls: ["https://snowtrace.io"] },
+};
+
+let provider, signer, userAddress;
+let currentDrop = null;      // پاسخ خام /api/drop
+let currentSlug = null;
+let stages = [];             // فازهای نرمال‌شده
+let selectedStage = null;
+
+// ---------------------------------------------------------------------
+// گرفتن اسلاگ کالکشن از یک لینک کامل اپن‌سی یا پذیرفتن مستقیم اسلاگ
+// ---------------------------------------------------------------------
+function extractSlug(raw) {
+  raw = raw.trim();
+  const m = raw.match(/opensea\.io\/(?:assets\/)?collection\/([a-zA-Z0-9_-]+)/i);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]+$/.test(raw)) return raw; // فرض: خودِ اسلاگ را پیست کرده
+  return null;
+}
+
+// ---------------------------------------------------------------------
+// نرمال‌سازی فازها: چون فیلدهای دقیق JSON در مستندات به‌صورت camelCase
+// (SDK) نشان داده شده و ممکن است پاسخ خام REST بعضی فیلدها را snake_case
+// برگرداند، هر دو حالت را پشتیبانی می‌کنیم. اگر بعد از تست دیدی اسمی فرق
+// دارد، همین‌جا اضافه‌اش کن.
+// ---------------------------------------------------------------------
+function pick(obj, ...keys) {
+  for (const k of keys) if (obj?.[k] !== undefined && obj?.[k] !== null) return obj[k];
+  return undefined;
+}
+
+function normalizeDrop(raw) {
+  const d = raw?.drop || raw;
+  const chain = (pick(d, "chain", "chain_identifier") || "ethereum").toLowerCase();
+  const rawStages = pick(d, "stages", "mint_stages") || [];
+
+  const now = Date.now();
+  const normStages = rawStages.map((s) => {
+    const start = pick(s, "startTime", "start_time");
+    const end = pick(s, "endTime", "end_time");
+    const startMs = start ? new Date(start).getTime() : null;
+    const endMs = end ? new Date(end).getTime() : null;
+    let status = "Upcoming";
+    if (startMs && now < startMs) status = "Upcoming";
+    else if (endMs && now > endMs) status = "Ended";
+    else status = "Live now";
+
+    return {
+      raw: s,
+      label: pick(s, "label", "name") || "Stage",
+      price: pick(s, "price") ?? "0",
+      maxPerWallet: pick(s, "maxPerWallet", "max_per_wallet", "perWalletLimit", "per_wallet_limit"),
+      startMs, endMs, status,
+    };
+  });
+
+  return {
+    slug: pick(d, "collectionSlug", "collection_slug", "slug") || currentSlug,
+    name: pick(d, "collectionName", "collection_name", "name") || currentSlug,
+    chain,
+    contract: pick(d, "contractAddress", "contract_address"),
+    totalSupply: pick(d, "totalSupply", "total_supply"),
+    maxSupply: pick(d, "maxSupply", "max_supply"),
+    stages: normStages,
+  };
+}
+
+async function loadDropFromInput() {
+  const raw = document.getElementById("rawInput").value;
+  const slug = extractSlug(raw);
+  if (!slug) {
+    showStatus("لینک کالکشن اپن‌سی یا اسلاگ معتبر وارد کن (مثال: chompnft).", "error");
+    return;
+  }
+  currentSlug = slug;
+  const loadBtn = document.getElementById("loadBtn");
+  loadBtn.disabled = true;
+  loadBtn.innerText = "در حال دریافت...";
+  showStatus("در حال گرفتن اطلاعات دراپ از OpenSea...", "info");
+
+  try {
+    const res = await fetch(`/api/drop?slug=${encodeURIComponent(slug)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      showStatus("خطا: " + (data.error || "دراپ پیدا نشد"), "error");
+      return;
+    }
+    currentDrop = normalizeDrop(data);
+    stages = currentDrop.stages;
+
+    if (!currentDrop.contract) {
+      showStatus("این دراپ آدرس قرارداد ندارد یا فرمت پاسخ فرق دارد؛ کنسول مرورگر را برای دیدن پاسخ خام چک کن.", "error");
+      console.log("پاسخ خام /api/drop:", data);
+    } else {
+      showStatus("اطلاعات دراپ با موفقیت دریافت شد.", "success");
     }
 
-    function selectStage(stage) {
-      selectedStage = stage;
-      document.getElementById("selectedStageName").innerText = stage.name;
-      document.getElementById("selectedStagePrice").innerText = stage.priceText;
-      document.getElementById("selectedStageLimit").innerText = stage.limitText;
-      document.getElementById("mintQty").max = stage.limit;
+    document.getElementById("heroSection").style.display = "flex";
+    document.getElementById("mainGrid").style.display = "grid";
+    document.getElementById("contractTitle").innerText = currentDrop.name;
+    document.getElementById("contractDisplay").innerText = "قرارداد: " + (currentDrop.contract || "نامشخص");
+    document.getElementById("networkBadge").innerText = "شبکه: " + currentDrop.chain;
 
-      const elBadge = document.getElementById("eligibilityDisplay");
-      elBadge.innerText = stage.eligible ? "Eligible ✓" : "Not eligible ✗";
-      elBadge.style.color = stage.eligible ? "#7ee787" : "#ff7b72";
-
-      renderScheduleUI();
-      calculateTotal();
-    }
-
-    function parseAndLoad() {
-      const raw = document.getElementById("rawInput").value.trim();
-      const addressMatch = raw.match(/0x[a-fA-F0-9]{40}/);
-      if (addressMatch) {
-        detectedContract = ethers.utils.getAddress(addressMatch[0].toLowerCase());
-        document.getElementById("contractDisplay").innerText = "قرارداد: " + detectedContract;
-        showStatus("قرارداد با موفقیت تنظیم شد. ربی به طور خودکار شبکه را تنظیم خواهد کرد.", "success");
-      } else {
-        showStatus("آدرس قرارداد معتبری یافت نشد.", "error");
-      }
-      calculateTotal();
-    }
-
-    function calculateTotal() {
-      const qty = parseInt(document.getElementById("mintQty").value) || 1;
-      const total = (qty * selectedStage.price).toFixed(4);
-      document.getElementById("totalCost").innerText = `${total} ETH`;
-    }
-
-    async function connectWallet() {
-      if (!window.ethereum) {
-        alert("لطفاً افزونه کیف پول (Rabby / Metamask) را نصب کنید.");
-        return;
-      }
-      try {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        userAddress = await signer.getAddress();
-
-        document.getElementById("walletAddress").innerText = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
-        document.getElementById("connectBtn").innerText = "متصل شد ✓";
-        document.getElementById("connectBtn").style.background = "#21262d";
-
-        const btn = document.getElementById("mintBtn");
-        btn.disabled = false;
-        btn.innerText = "مینت مستقیم از SeaDrop ⚡";
-      } catch (err) {
-        showStatus("خطا در اتصال: " + err.message, "error");
-      }
-    }
-
-    async function executeMint() {
-      if (!signer) return;
-      if (selectedStage.status === "Ended") {
-        showStatus("این فاز منقضی شده است. فاز Live now را انتخاب کنید.", "error");
-        return;
-      }
-
-      const qty = parseInt(document.getElementById("mintQty").value);
-      const totalCost = ethers.utils.parseEther((qty * selectedStage.price).toString());
-
-      try {
-        const cleanContract = ethers.utils.getAddress(detectedContract.toLowerCase());
-        const cleanSeaDrop = ethers.utils.getAddress(SEADROP_ADDRESS.toLowerCase());
-
-        showStatus("ارسال درخواست تراکنش به Rabby...", "info");
-        const seaDrop = new ethers.Contract(cleanSeaDrop, SEADROP_ABI, signer);
-
-        // ارسال مستقیم تراکنش (ربی خودش پاپ‌آپ سوییچ و امضا رو باز می‌کنه)
-        const tx = await seaDrop.mintPublic(
-          cleanContract,
-          ethers.constants.AddressZero,
-          ethers.constants.AddressZero,
-          qty,
-          { value: totalCost }
-        );
-
-        showStatus("تراکنش فرستاده شد! هش: " + tx.hash, "info");
-        await tx.wait();
-        showStatus("مینت با موفقیت کامل انجام شد! 🎉", "success");
-      } catch (err) {
-        showStatus("خطا در تراکنش: " + (err.reason || err.data?.message || err.message), "error");
-      }
-    }
-
-    function showStatus(msg, type) {
-      const el = document.getElementById("status");
-      el.className = type;
-      el.innerText = msg;
-      el.style.display = "block";
-    }
-
+    selectedStage = stages.find((s) => s.status === "Live now") || stages[0] || null;
     renderScheduleUI();
-    calculateTotal();
-  </script>
+    selectStage(selectedStage);
+    updateMintButtonState();
+  } catch (err) {
+    showStatus("خطا در ارتباط با سرور: " + err.message, "error");
+  } finally {
+    loadBtn.disabled = false;
+    loadBtn.innerText = "دریافت اطلاعات دراپ";
+  }
+}
+
+function renderScheduleUI() {
+  const container = document.getElementById("scheduleContainer");
+  container.innerHTML = "";
+  if (!stages.length) {
+    container.innerHTML = '<div class="empty-hint">فازی برای این دراپ پیدا نشد.</div>';
+    return;
+  }
+  stages.forEach((stage) => {
+    const item = document.createElement("div");
+    const isSelected = selectedStage && stage.label === selectedStage.label;
+    item.className = `stage-item ${isSelected ? "selected" : ""}`;
+    item.onclick = () => selectStage(stage);
+    const badgeClass = stage.status === "Live now" ? "badge-live" : stage.status === "Upcoming" ? "badge-upcoming" : "badge-ended";
+    const timeText = [
+      stage.startMs ? "شروع: " + new Date(stage.startMs).toLocaleString() : "",
+      stage.endMs ? "پایان: " + new Date(stage.endMs).toLocaleString() : "",
+    ].filter(Boolean).join(" • ");
+
+    item.innerHTML = `
+      <div class="stage-top">
+        <div class="stage-title-wrap"><span class="stage-name">${stage.label}</span></div>
+        <span class="stage-badge ${badgeClass}">${stage.status}</span>
+      </div>
+      <div class="stage-time">${timeText}</div>
+      <div class="stage-foot">
+        <span><strong>${stage.price} ETH</strong>${stage.maxPerWallet ? " | حداکثر " + stage.maxPerWallet + " در هر ولت" : ""}</span>
+      </div>`;
+    container.appendChild(item);
+  });
+}
+
+function selectStage(stage) {
+  if (!stage) return;
+  selectedStage = stage;
+  document.getElementById("selectedStageName").innerText = stage.label;
+  document.getElementById("selectedStagePrice").innerText = stage.price + " ETH";
+  document.getElementById("selectedStageLimit").innerText = stage.maxPerWallet ? stage.maxPerWallet + " per wallet" : "—";
+  const qtyInput = document.getElementById("mintQty");
+  if (stage.maxPerWallet) qtyInput.max = stage.maxPerWallet;
+  renderScheduleUI();
+  calculateTotal();
+  updateMintButtonState();
+}
+
+function calculateTotal() {
+  if (!selectedStage) return;
+  const qty = parseInt(document.getElementById("mintQty").value) || 1;
+  const total = (qty * parseFloat(selectedStage.price || 0)).toFixed(4);
+  document.getElementById("totalCost").innerText = `${total} ETH`;
+}
+
+function updateMintButtonState() {
+  const btn = document.getElementById("mintBtn");
+  if (!signer) { btn.disabled = true; btn.innerText = "ابتدا کیف پول را وصل کن"; return; }
+  if (!selectedStage || selectedStage.status !== "Live now") { btn.disabled = true; btn.innerText = "این فاز الان فعال نیست"; return; }
+  btn.disabled = false;
+  btn.innerText = "مینت مستقیم ⚡";
+}
+
+async function connectWallet() {
+  if (!window.ethereum) {
+    alert("لطفاً افزونه کیف پول (Rabby / Metamask) را نصب کنید.");
+    return;
+  }
+  try {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
+    document.getElementById("walletAddress").innerText = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+    document.getElementById("connectBtn").innerText = "متصل شد ✓";
+    document.getElementById("connectBtn").style.background = "#21262d";
+    updateMintButtonState();
+  } catch (err) {
+    showStatus("خطا در اتصال: " + err.message, "error");
+  }
+}
+
+// اطمینان از این‌که کیف پول روی شبکه‌ی درست دراپ است؛ در غیر این‌صورت
+// درخواست سوییچ (یا افزودن شبکه) می‌دهد. دیگر به «سوییچ خودکار کیف‌پول»
+// تکیه نمی‌کنیم چون خیلی از کیف‌پول‌ها این کار را انجام نمی‌دهند.
+async function ensureCorrectNetwork() {
+  const target = CHAINS[currentDrop.chain];
+  if (!target) {
+    showStatus(`شبکه‌ی «${currentDrop.chain}» در لیست پشتیبانی‌شده نیست؛ خودت باید دستی وصل شوی.`, "info");
+    return true;
+  }
+  const network = await provider.getNetwork();
+  const currentHex = "0x" + network.chainId.toString(16);
+  if (currentHex.toLowerCase() === target.chainIdHex.toLowerCase()) return true;
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: target.chainIdHex }],
+    });
+  } catch (switchErr) {
+    if (switchErr.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: target.chainIdHex,
+          chainName: target.chainName,
+          nativeCurrency: target.nativeCurrency,
+          rpcUrls: target.rpcUrls,
+          blockExplorerUrls: target.blockExplorerUrls,
+        }],
+      });
+    } else {
+      throw switchErr;
+    }
+  }
+  // بعد از سوییچ، provider را دوباره می‌سازیم چون ethers نسخه‌ی قدیمی
+  // شنودگر chainChanged ندارد.
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = provider.getSigner();
+  return true;
+}
+
+async function executeMint() {
+  if (!signer || !selectedStage || !currentDrop) return;
+  if (selectedStage.status !== "Live now") {
+    showStatus("این فاز الان فعال نیست.", "error");
+    return;
+  }
+
+  const qty = parseInt(document.getElementById("mintQty").value) || 1;
+
+  try {
+    await ensureCorrectNetwork();
+
+    showStatus("در حال ساخت تراکنش مینت روی سرور...", "info");
+    const res = await fetch("/api/mint", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug: currentDrop.slug, minter: userAddress, quantity: qty }),
+    });
+    const mintTx = await res.json();
+    if (!res.ok) {
+      showStatus("خطا از OpenSea: " + (mintTx.error || "ساخت تراکنش ناموفق بود"), "error");
+      return;
+    }
+
+    // OpenSea خودش calldata و آدرس مقصد درست را برمی‌گرداند؛ دیگر نیازی
+    // به ABI و آدرس SeaDrop و feeRecipient حدسی نیست.
+    const to = pick(mintTx, "target", "to");
+    const data = pick(mintTx, "calldata", "data");
+    const value = pick(mintTx, "value") || "0";
+
+    if (!to || !data) {
+      showStatus("پاسخ /api/mint فرمت غیرمنتظره‌ای داشت؛ کنسول را چک کن.", "error");
+      console.log("پاسخ خام /api/mint:", mintTx);
+      return;
+    }
+
+    showStatus("در حال ارسال تراکنش به کیف پول برای امضا...", "info");
+    const tx = await signer.sendTransaction({ to, data, value: ethers.BigNumber.from(value) });
+    showStatus("تراکنش فرستاده شد! هش: " + tx.hash, "info");
+    await tx.wait();
+    showStatus("مینت با موفقیت کامل انجام شد! 🎉", "success");
+  } catch (err) {
+    showStatus("خطا در تراکنش: " + (err.reason || err.data?.message || err.message), "error");
+  }
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById("status");
+  el.className = type;
+  el.innerText = msg;
+  el.style.display = "block";
+}
+</script>
 </body>
 </html>
