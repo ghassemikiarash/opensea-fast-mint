@@ -3,452 +3,388 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenSea Drops Pro Minter</title>
+  <title>Chomp NFT Launchpad - OpenSea Fast Minter</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
       --bg: #0b0e14;
-      --card-bg: #151b23;
+      --card-bg: #161b22;
       --border: #30363d;
-      --primary: #2f81f7;
-      --success: #238636;
       --text: #e6edf3;
       --muted: #8b949e;
-      --accent: #f0883e;
+      --blue: #2f81f7;
+      --green: #238636;
+      --green-light: #2ea043;
+      --tag-live: #238636;
+      --tag-ended: #30363d;
     }
     body {
       font-family: system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       margin: 0;
-      padding: 24px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    .header {
+    .wrapper {
       width: 100%;
-      max-width: 1100px;
+      max-width: 960px;
+    }
+
+    /* هدر و بنر پروژه */
+    .hero-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .hero-banner {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      background: #1f242c;
+    }
+    .hero-content {
+      padding: 20px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-end;
+      margin-top: -60px;
+    }
+    .avatar-img {
+      width: 110px;
+      height: 110px;
+      border-radius: 16px;
+      border: 4px solid var(--card-bg);
+      object-fit: cover;
+      background: #21262d;
+    }
+    .hero-text { flex: 1; }
+    .hero-text h1 { margin: 0 0 6px 0; font-size: 1.6rem; display: flex; align-items: center; gap: 8px; }
+    .badge-chain {
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #1f6feb22;
+      color: var(--blue);
+      font-weight: normal;
+    }
+
+    .top-actions {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 16px;
+      margin-bottom: 16px;
     }
-    .btn {
+    .btn-connect {
+      background: var(--green);
+      color: #fff;
+      border: none;
       padding: 10px 18px;
       border-radius: 8px;
-      border: none;
-      font-weight: 600;
+      font-weight: bold;
       cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.2s;
     }
-    .btn-wallet { background: var(--success); color: #fff; }
-    .btn-wallet:hover { background: #2ea043; }
-    .btn-action { background: var(--primary); color: #fff; width: 100%; padding: 14px; font-size: 1rem; margin-top: 10px; }
-    .btn-action:hover { background: #388bfd; }
-    .btn-action:disabled { background: #21262d; color: var(--muted); cursor: not-allowed; }
 
-    .main-layout {
-      width: 100%;
-      max-width: 1100px;
+    /* چیدمان اصلی دو ستونه */
+    .grid-container {
       display: grid;
       grid-template-columns: 1.6fr 1fr;
       gap: 24px;
     }
-    @media (max-width: 900px) {
-      .main-layout { grid-template-columns: 1fr; }
+    @media (max-width: 768px) {
+      .grid-container { grid-template-columns: 1fr; }
     }
 
-    /* کارت‌های دراپ */
-    .drops-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 16px;
-    }
-    .drop-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.1s;
-      position: relative;
-    }
-    .drop-card:hover { border-color: var(--primary); transform: translateY(-2px); }
-    .drop-card.active { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
-    .drop-card img {
-      width: 100%;
-      height: 150px;
-      object-fit: cover;
-      display: block;
-    }
-    .drop-info { padding: 14px; }
-    .drop-title { margin: 0 0 6px 0; font-size: 1.05rem; font-weight: 700; }
-    .drop-chain {
-      display: inline-block;
-      font-size: 0.75rem;
-      padding: 3px 8px;
-      border-radius: 20px;
-      background: #21262d;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-    .timer-badge {
-      font-size: 0.8rem;
-      color: var(--accent);
-      font-family: monospace;
-      font-weight: bold;
-    }
-
-    /* پنل مینت */
-    .mint-panel {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
+    /* زمان‌بندی مینت (Mint Schedule) */
+    .section-title { font-size: 1.1rem; margin-bottom: 14px; font-weight: 700; }
+    .schedule-box {
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      height: fit-content;
+      gap: 12px;
     }
-    .panel-section {
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-    }
-    .row { display: flex; justify-content: space-between; font-size: 0.85rem; margin: 4px 0; }
-    .row span:first-child { color: var(--muted); }
-    .row span:last-child { font-weight: 600; font-family: monospace; }
-    
-    /* نوار پیشرفت */
-    .progress-bar-bg {
-      background: #21262d;
-      height: 8px;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .progress-bar-fill {
-      background: var(--primary);
-      height: 100%;
-      width: 0%;
-      transition: width 0.3s;
-    }
-
-    /* فازهای مینت و وایت لیست */
-    .phase-selector {
-      display: flex;
-      gap: 8px;
-      background: #0d1117;
-      padding: 4px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-    .phase-tab {
-      flex: 1;
-      text-align: center;
-      padding: 8px;
-      font-size: 0.85rem;
-      border-radius: 6px;
-      cursor: pointer;
-      color: var(--muted);
-    }
-    .phase-tab.active {
+    .stage-item {
       background: var(--card-bg);
-      color: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .stage-item:hover, .stage-item.selected {
+      border-color: var(--blue);
+      background: #1a202c;
+    }
+    .stage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .stage-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 12px;
       font-weight: bold;
     }
-
-    .qty-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .badge-ended { background: var(--tag-ended); color: var(--muted); }
+    .badge-live { background: #238636; color: #fff; }
+    .stage-type {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-right: 6px;
     }
-    .qty-box input {
-      flex: 1;
+    .stage-name { font-size: 1.05rem; font-weight: bold; }
+    .stage-details {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .stage-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #21262d;
+      font-size: 0.85rem;
+    }
+    .eligibility {
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .not-eligible { background: #3d1d24; color: #ff7b72; }
+    .eligible { background: #163c29; color: #7ee787; }
+
+    /* پنل مینت سریع */
+    .mint-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      height: fit-content;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      font-size: 0.9rem;
+    }
+    .info-row span:first-child { color: var(--muted); }
+    .info-row span:last-child { font-weight: bold; }
+    .qty-input {
+      width: 100%;
       padding: 10px;
       background: #0d1117;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       color: #fff;
-      text-align: center;
       font-size: 1rem;
+      box-sizing: border-box;
+      margin-top: 6px;
     }
-
+    .btn-mint {
+      width: 100%;
+      padding: 14px;
+      background: var(--blue);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+    .btn-mint:disabled {
+      background: #21262d;
+      color: var(--muted);
+      cursor: not-allowed;
+    }
     #status {
+      margin-top: 14px;
       padding: 12px;
       border-radius: 8px;
       font-size: 0.85rem;
       display: none;
       word-break: break-all;
     }
-    .success { background: #1b472c; color: #7ee787; border: 1px solid #238636; }
-    .error { background: #4c1d24; color: #ff7b72; border: 1px solid #da3633; }
-    .info { background: #1f3557; color: #79c0ff; border: 1px solid var(--primary); }
+    .success { background: #1b472c; color: #7ee787; }
+    .error { background: #4c1d24; color: #ff7b72; }
+    .info { background: #1f3557; color: #79c0ff; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <div>
-      <h2 style="margin: 0; color: var(--primary);">OpenSea Drops Minter ⚡</h2>
-      <small style="color: var(--muted);">اتصال مستقیم به کانترکت SeaDrop بدون لودینگ فرانت‌اند</small>
-    </div>
-    <div>
-      <button id="connectBtn" class="btn btn-wallet" onclick="connectWallet()">اتصال متامسک</button>
-      <div id="walletAddr" style="font-size: 0.75rem; color: var(--muted); text-align: left; margin-top: 4px;"></div>
-    </div>
-  </div>
-
-  <div class="main-layout">
-    <!-- لیست کالکشن‌ها -->
-    <div>
-      <h3 style="margin-top: 0;">کالکشن‌های لایو و دراپ‌ها</h3>
-      <div class="drops-grid" id="dropsContainer"></div>
-    </div>
-
-    <!-- پنل کنترل مینت -->
-    <div class="mint-panel">
-      <h3 style="margin: 0;" id="panelTitle">انتخاب کالکشن</h3>
-
-      <!-- تب‌های فاز مینت (Allowlist vs Public) -->
-      <div class="phase-selector">
-        <div class="phase-tab active" id="tabPublic" onclick="setPhase('public')">🌐 فاز عمومی (Public)</div>
-        <div class="phase-tab" id="tabAllowlist" onclick="setPhase('allowlist')">🎟 وایت‌لیست (Presale)</div>
-      </div>
-
-      <!-- جزئیات فاز و پیشرفت -->
-      <div class="panel-section">
-        <div class="row">
-          <span>شبکه:</span>
-          <span id="displayChain">-</span>
-        </div>
-        <div class="row">
-          <span>وضعیت فاز:</span>
-          <span id="displayTimer" class="timer-badge">-</span>
-        </div>
-        <div class="row">
-          <span>قیمت هر واحد:</span>
-          <span id="displayPrice">- ETH</span>
-        </div>
-        <div class="row">
-          <span>وضعیت وایت‌لیست شما:</span>
-          <span id="wlStatus" style="color: var(--muted);">نیازمند اتصال ولت</span>
-        </div>
-        <div style="margin-top: 8px;">
-          <div class="row">
-            <span>موجودی مینت شده:</span>
-            <span id="mintProgressText">0 / 0</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" id="progressBar"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- تعداد مینت -->
+  <div class="wrapper">
+    <div class="top-actions">
+      <div><strong>OpenSea Drop Gateway</strong></div>
       <div>
-        <label style="font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 6px;">تعداد توکن:</label>
-        <div class="qty-box">
-          <input type="number" id="mintQty" value="1" min="1" max="10" oninput="calculateTotal()" />
+        <button id="connectBtn" class="btn-connect" onclick="connectWallet()">اتصال کیف پول</button>
+        <span id="walletAddress" style="font-size: 0.8rem; color: var(--muted); margin-right: 8px;"></span>
+      </div>
+    </div>
+
+    <!-- پروفایل چامپ همراه تصویر واقعی -->
+    <div class="hero-card">
+      <img class="hero-banner" src="https://i.seadn.io/gcs/files/3b5db3ebcc93c83690d0b04ea0cb13c3.png?auto=format&dpr=1&w=1920" alt="Chomp Banner" onerror="this.src='https://picsum.photos/900/200'" />
+      <div class="hero-content">
+        <img class="avatar-img" src="https://i.seadn.io/gcs/files/ad0118eb3d4432247be9cff98c935472.png?auto=format&dpr=1&w=384" alt="Chomp Avatar" onerror="this.src='https://picsum.photos/120/120'" />
+        <div class="hero-text">
+          <h1>Chomp <span class="badge-chain">Ethereum / SeaDrop</span></h1>
+          <p style="margin: 0; color: var(--muted); font-size: 0.85rem;">قرارداد: 0x39aB24564c785Fe687dF7265F5E052d9213812d4</p>
         </div>
       </div>
+    </div>
 
-      <div class="row" style="font-size: 1rem;">
-        <span>مجموع پرداختی:</span>
-        <span id="totalPriceDisplay" style="color: var(--primary);">0 ETH</span>
+    <div class="grid-container">
+      <!-- بخش Mint Schedule مطابق صفحه اوپن‌سی -->
+      <div>
+        <div class="section-title">Mint schedule</div>
+        <div class="schedule-box" id="scheduleList"></div>
       </div>
 
-      <button id="mintActionBtn" class="btn btn-action" onclick="executeMint()" disabled>
-        ابتدا ولت را وصل کنید
-      </button>
+      <!-- پنل مینت سریع و تسویه -->
+      <div class="mint-card">
+        <div class="section-title">کنترلر مینت سریع</div>
+        
+        <div class="info-row">
+          <span>فاز انتخابی:</span>
+          <span id="displayStage">Public stage</span>
+        </div>
+        <div class="info-row">
+          <span>قیمت واحد:</span>
+          <span id="displayPrice">0.003 ETH</span>
+        </div>
+        <div class="info-row">
+          <span>محدودیت هر ولت:</span>
+          <span id="displayLimit">20 per wallet</span>
+        </div>
+        
+        <div style="margin-top: 14px;">
+          <label style="font-size: 0.85rem; color: var(--muted);">تعداد توکن جهت مینت:</label>
+          <input type="number" id="mintQuantity" class="qty-input" value="1" min="1" max="20" oninput="updateTotal()" />
+        </div>
 
-      <div id="status"></div>
+        <div class="info-row" style="margin-top: 14px; font-size: 1.05rem;">
+          <span>مجموع پرداخت:</span>
+          <span id="totalEth" style="color: var(--blue);">0.003 ETH</span>
+        </div>
+
+        <button id="mintButton" class="btn-mint" onclick="executeMint()" disabled>
+          کیف پول وصل نیست
+        </button>
+
+        <div id="status"></div>
+      </div>
     </div>
   </div>
 
   <script>
-    // آدرس استاندارد و یکپارچه SeaDrop اوپن‌سی در همه شبکه‌های EVM
-    const SEADROP_ADDRESS = "0x00005EA00Ac477B1030CE7850649666545161545";
-
-    // لیست داده‌های دراپ (نمونه ساختار واقعی با فاز، وایت‌لیست و زمان‌بندی)
-    const DROPS = [
+    // اطلاعات زمان‌بندی واقعی بر اساس دیتای درخواستی
+    const SCHEDULE = [
       {
-        id: "chomp",
-        name: "Chomp NFT Drop",
-        contract: "0x39aB24564c785Fe687dF7265F5E052d9213812d4",
-        chainId: 8453, // Base Network
-        chainName: "Base",
-        image: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=600&auto=format&fit=crop&q=80",
-        publicPrice: "0.001",
-        wlPrice: "0.0005",
-        totalSupply: 5000,
-        minted: 3820,
-        // زمان‌ها به ثانیه یونیکس
-        publicStartTime: Math.floor(Date.now() / 1000) - 3600, // یک ساعت پیش شروع شده
-        publicEndTime: Math.floor(Date.now() / 1000) + 86400 * 2, // ۲ روز دیگر
-        allowlistMembers: ["0x71c..."] // لیست نمونه مجازین
+        id: "team",
+        name: "Team",
+        type: "Allowlist",
+        status: "Ended",
+        time: "Started: September 6 at 10:00 PM GMT+4",
+        price: 0,
+        priceText: "Free",
+        limit: 100,
+        eligible: false
       },
       {
-        id: "cyber-heroes",
-        name: "Cyber Heroes Genesis",
-        contract: "0x77777772dec96b997fa44b82d49942a781037777",
-        chainId: 1, // Ethereum Mainnet
-        chainName: "Ethereum",
-        image: "https://images.unsplash.com/photo-1634973357973-f2ed2657db3c?w=600&auto=format&fit=crop&q=80",
-        publicPrice: "0.025",
-        wlPrice: "0.018",
-        totalSupply: 2222,
-        minted: 1980,
-        publicStartTime: Math.floor(Date.now() / 1000) + 3600 * 5, // ۵ ساعت دیگر شروع می‌شود
-        publicEndTime: Math.floor(Date.now() / 1000) + 86400 * 4,
-        allowlistMembers: []
+        id: "gtd",
+        name: "GTD",
+        type: "Allowlist",
+        status: "Ended",
+        time: "Started: September 6 at 10:15 PM GMT+4",
+        price: 0.003,
+        priceText: "0.003 ETH",
+        limit: 5,
+        eligible: false
       },
       {
-        id: "pixel-creatures",
-        name: "Pixel Metaverse",
-        contract: "0x1111111254fb6c44bac0bed2854e76f90643097d",
-        chainId: 137, // Polygon
-        chainName: "Polygon",
-        image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
-        publicPrice: "0.0",
-        wlPrice: "0.0",
-        totalSupply: 10000,
-        minted: 8450,
-        publicStartTime: Math.floor(Date.now() / 1000) - 10000,
-        publicEndTime: Math.floor(Date.now() / 1000) + 86400,
-        allowlistMembers: []
+        id: "wl",
+        name: "WL FCFS",
+        type: "Allowlist",
+        status: "Ended",
+        time: "Started: September 6 at 11:15 PM GMT+4",
+        price: 0.003,
+        priceText: "0.003 ETH",
+        limit: 5,
+        eligible: false
+      },
+      {
+        id: "public",
+        name: "Public stage",
+        type: "Public",
+        status: "Live now",
+        time: "Starts: September 7 at 12:15 AM GMT+4 • Ends: September 7, 2027 at 12:15 AM GMT+4",
+        price: 0.003,
+        priceText: "0.003 ETH",
+        limit: 20,
+        eligible: true
       }
     ];
 
+    const NFT_CONTRACT = "0x39aB24564c785Fe687dF7265F5E052d9213812d4";
+    const SEADROP_ADDRESS = "0x00005EA00Ac477B1030CE7850649666545161545";
     const SEADROP_ABI = [
-      "function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable",
-      "function mintAllowList(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity, tuple(bytes32[] proof, uint256 mintPrice, uint256 maxTotalMintableByWallet, uint256 startTime, uint256 endTime, bytes32 dropStageIndex) allowlistMint) payable"
+      "function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable"
     ];
 
+    let selectedStage = SCHEDULE[3]; // پیش‌فرض روی Public Stage لایو
     let provider, signer, userAddress;
-    let selectedDrop = DROPS[0];
-    let currentPhase = "public"; // "public" یا "allowlist"
 
-    function init() {
-      renderDropsList();
-      selectDrop(0);
-      setInterval(updateTimers, 1000);
-    }
-
-    function renderDropsList() {
-      const container = document.getElementById("dropsContainer");
+    function renderSchedule() {
+      const container = document.getElementById("scheduleList");
       container.innerHTML = "";
-      DROPS.forEach((drop, index) => {
-        const card = document.createElement("div");
-        card.className = `drop-card ${index === 0 ? 'active' : ''}`;
-        card.id = `card-${index}`;
-        card.onclick = () => selectDrop(index);
-        card.innerHTML = `
-          <img src="${drop.image}" alt="${drop.name}" />
-          <div class="drop-info">
-            <span class="drop-chain">${drop.chainName}</span>
-            <h4 class="drop-title">${drop.name}</h4>
-            <div class="row">
-              <span>قیمت عمومی:</span>
-              <span>${drop.publicPrice} ETH</span>
+
+      SCHEDULE.forEach((stage) => {
+        const item = document.createElement("div");
+        item.className = `stage-item ${stage.id === selectedStage.id ? 'selected' : ''}`;
+        item.onclick = () => selectStage(stage);
+
+        item.innerHTML = `
+          <div class="stage-header">
+            <div>
+              <span class="stage-name">${stage.name}</span>
+              <span class="stage-type">${stage.type}</span>
             </div>
-            <div class="row">
-              <span>وضعیت:</span>
-              <span class="timer-badge" id="timer-card-${index}">بررسی...</span>
-            </div>
+            <span class="stage-badge ${stage.status === 'Live now' ? 'badge-live' : 'badge-ended'}">${stage.status}</span>
+          </div>
+          <div class="stage-details">${stage.time}</div>
+          <div class="stage-footer">
+            <span><strong>${stage.priceText}</strong> | Limit ${stage.limit} per wallet</span>
+            <span class="eligibility ${stage.eligible ? 'eligible' : 'not-eligible'}">
+              ${stage.eligible ? 'Eligible ✓' : 'Not eligible'}
+            </span>
           </div>
         `;
-        container.appendChild(card);
+        container.appendChild(item);
       });
     }
 
-    function selectDrop(index) {
-      document.querySelectorAll(".drop-card").forEach(c => c.classList.remove("active"));
-      document.getElementById(`card-${index}`)?.classList.add("active");
-
-      selectedDrop = DROPS[index];
-      document.getElementById("panelTitle").innerText = selectedDrop.name;
-      document.getElementById("displayChain").innerText = selectedDrop.chainName;
-
-      // نوار پیشرفت موجودی
-      const percent = Math.round((selectedDrop.minted / selectedDrop.totalSupply) * 100);
-      document.getElementById("progressBar").style.width = percent + "%";
-      document.getElementById("mintProgressText").innerText = `${selectedDrop.minted.toLocaleString()} / ${selectedDrop.totalSupply.toLocaleString()} (${percent}%)`;
-
-      refreshPhaseUI();
-      checkAllowlistStatus();
-      calculateTotal();
+    function selectStage(stage) {
+      selectedStage = stage;
+      document.getElementById("displayStage").innerText = stage.name;
+      document.getElementById("displayPrice").innerText = stage.priceText;
+      document.getElementById("displayLimit").innerText = `${stage.limit} per wallet`;
+      document.getElementById("mintQuantity").max = stage.limit;
+      renderSchedule();
+      updateTotal();
     }
 
-    function setPhase(phase) {
-      currentPhase = phase;
-      document.getElementById("tabPublic").classList.toggle("active", phase === "public");
-      document.getElementById("tabAllowlist").classList.toggle("active", phase === "allowlist");
-      refreshPhaseUI();
-      calculateTotal();
-    }
-
-    function refreshPhaseUI() {
-      const price = currentPhase === "public" ? selectedDrop.publicPrice : selectedDrop.wlPrice;
-      document.getElementById("displayPrice").innerText = price + " ETH";
-    }
-
-    function calculateTotal() {
-      const qty = parseInt(document.getElementById("mintQty").value) || 1;
-      const unitPrice = parseFloat(currentPhase === "public" ? selectedDrop.publicPrice : selectedDrop.wlPrice);
-      const total = (qty * unitPrice).toFixed(4);
-      document.getElementById("totalPriceDisplay").innerText = total + " ETH";
-    }
-
-    function updateTimers() {
-      const now = Math.floor(Date.now() / 1000);
-      DROPS.forEach((drop, i) => {
-        const badge = document.getElementById(`timer-card-${i}`);
-        let text = "";
-        if (now < drop.publicStartTime) {
-          text = "شروع تا " + formatRemaining(drop.publicStartTime - now);
-        } else if (now < drop.publicEndTime) {
-          text = "پایان تا " + formatRemaining(drop.publicEndTime - now);
-        } else {
-          text = "پایان یافته";
-        }
-        if (badge) badge.innerText = text;
-        if (drop.id === selectedDrop.id) {
-          document.getElementById("displayTimer").innerText = text;
-        }
-      });
-    }
-
-    function formatRemaining(seconds) {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = seconds % 60;
-      return `${h}س ${m}د ${s}ث`;
-    }
-
-    async function checkAllowlistStatus() {
-      const label = document.getElementById("wlStatus");
-      if (!userAddress) {
-        label.innerText = "کیف پول وصل نیست";
-        label.style.color = "var(--muted)";
-        return;
-      }
-
-      // دراپ‌های اوپن‌سی لیست مرکل را در سرور نگه می‌دارند
-      // اینجا چک می‌کنیم آیا ولت شما جزو اعضای ثبت‌شده هست یا نه
-      const isWL = selectedDrop.allowlistMembers.some(addr => addr.toLowerCase() === userAddress.toLowerCase());
-      if (isWL) {
-        label.innerText = "مجاز هستید (Whitelisted) ✓";
-        label.style.color = "#7ee787";
-      } else {
-        label.innerText = "شما در وایت‌لیست نیستید ✗";
-        label.style.color = "#ff7b72";
-      }
+    function updateTotal() {
+      const qty = parseInt(document.getElementById("mintQuantity").value) || 1;
+      const total = (qty * selectedStage.price).toFixed(4);
+      document.getElementById("totalEth").innerText = total + " ETH";
     }
 
     async function connectWallet() {
@@ -462,75 +398,58 @@
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
 
-        document.getElementById("walletAddr").innerText = userAddress.slice(0,6) + "..." + userAddress.slice(-4);
-        document.getElementById("connectBtn").innerText = "متصل شد ✓";
+        document.getElementById("walletAddress").innerText = userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+        document.getElementById("connectBtn").innerText = "متصل شد";
         document.getElementById("connectBtn").style.background = "#21262d";
         
-        const mintBtn = document.getElementById("mintActionBtn");
+        const mintBtn = document.getElementById("mintButton");
         mintBtn.disabled = false;
-        mintBtn.innerText = "مینت مستقیم بدون معطلی ⚡";
-
-        checkAllowlistStatus();
+        mintBtn.innerText = "مینت فوری از کانترکت SeaDrop ⚡";
       } catch (err) {
-        showStatus("خطا در اتصال: " + err.message, "error");
-      }
-    }
-
-    async function switchNetworkIfNeeded(targetChainId) {
-      const currentNetwork = await provider.getNetwork();
-      if (currentNetwork.chainId !== targetChainId) {
-        showStatus("در حال تغییر خودکار شبکه در متامسک...", "info");
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: "0x" + targetChainId.toString(16) }],
-        });
+        showStatus("خطا در ولت: " + err.message, "error");
       }
     }
 
     async function executeMint() {
       if (!signer) return;
-      const qty = parseInt(document.getElementById("mintQty").value);
-      const price = parseFloat(currentPhase === "public" ? selectedDrop.publicPrice : selectedDrop.wlPrice);
-      const totalValue = ethers.utils.parseEther((price * qty).toString());
+      if (selectedStage.status === "Ended") {
+        showStatus("این فاز منقضی شده است. فاز Live now را انتخاب کنید.", "error");
+        return;
+      }
+
+      const qty = parseInt(document.getElementById("mintQuantity").value);
+      const totalCost = ethers.utils.parseEther((qty * selectedStage.price).toString());
+
+      showStatus("در حال ارسال تراکنش مستقیم به شبکه اتریوم...", "info");
 
       try {
-        await switchNetworkIfNeeded(selectedDrop.chainId);
-        showStatus("در حال ساخت و ارسال تراکنش مستقیم به کانترکت SeaDrop...", "info");
+        const seaDrop = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, signer);
 
-        const seaDropContract = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, signer);
-
-        let tx;
-        if (currentPhase === "public") {
-          // مینت پابلیک بدون واسطه سایت
-          tx = await seaDropContract.mintPublic(
-            selectedDrop.contract,
-            ethers.constants.AddressZero,
-            ethers.constants.AddressZero,
-            qty,
-            { value: totalValue }
-          );
-        } else {
-          showStatus("برای مینت وایت‌لیست در این پروژه، ثبت Merkle Proof ضروری است.", "error");
-          return;
-        }
+        const tx = await seaDrop.mintPublic(
+          NFT_CONTRACT,
+          ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
+          qty,
+          { value: totalCost }
+        );
 
         showStatus("تراکنش فرستاده شد! هش: " + tx.hash, "info");
         await tx.wait();
-        showStatus("مینت با موفقیت کامل انجام شد! توکن‌ها به ولت اضافه شدند 🎉", "success");
+        showStatus("مینت با موفقیت تایید شد! 🎉", "success");
       } catch (err) {
-        showStatus("خطا در عملیات: " + (err.reason || err.data?.message || err.message), "error");
+        showStatus("خطا در مینت: " + (err.reason || err.message), "error");
       }
     }
 
     function showStatus(msg, type) {
-      const box = document.getElementById("status");
-      box.className = type;
-      box.innerText = msg;
-      box.style.display = "block";
+      const el = document.getElementById("status");
+      el.className = type;
+      el.innerText = msg;
+      el.style.display = "block";
     }
 
-    // شروع لود اولیه
-    init();
+    renderSchedule();
+    updateTotal();
   </script>
 </body>
 </html>
