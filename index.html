@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenSea Drops Fast Minter ⚡</title>
+  <title>OpenSea Real Drops Minter</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
@@ -36,8 +36,6 @@
       margin-bottom: 20px;
       padding-bottom: 12px;
       border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-      gap: 12px;
     }
     .btn {
       border: none;
@@ -50,39 +48,9 @@
     .btn-connect { background: var(--green); color: #fff; }
     .btn-connect:hover { background: #2ea043; }
 
-    .quick-add-bar {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 14px;
-      margin-bottom: 20px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .quick-add-bar input {
-      flex: 1;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      color: #fff;
-      padding: 10px 12px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-    }
-    .quick-add-bar button {
-      background: var(--blue);
-      color: #fff;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
     .app-layout {
       display: grid;
-      grid-template-columns: 290px 1.4fr 1fr;
+      grid-template-columns: 280px 1.4fr 1fr;
       gap: 20px;
     }
     @media (max-width: 1024px) {
@@ -126,11 +94,9 @@
       padding: 2px 7px;
       border-radius: 4px;
       font-weight: bold;
+      background: #3c3c3d;
+      color: #fff;
     }
-    .chain-ethereum { background: #3c3c3d; color: #fff; }
-    .chain-base { background: #0052ff22; color: #58a6ff; border: 1px solid #0052ff55; }
-    .chain-arbitrum { background: #28a0f022; color: #28a0f0; border: 1px solid #28a0f055; }
-    .chain-polygon { background: #8247e522; color: #a855f7; border: 1px solid #8247e555; }
 
     .hero-card {
       background: var(--card-bg);
@@ -257,8 +223,8 @@
   <div class="wrapper">
     <div class="top-bar">
       <div>
-        <h2 style="margin: 0; color: var(--blue);">OpenSea Drops Fast Minter ⚡</h2>
-        <small style="color: var(--muted);">دور زدن مستقیم ترافیک اوپن‌سی و مینت مستقیم در بلاکچین</small>
+        <h2 style="margin: 0; color: var(--blue);">SeaDrop Fast Minter (دیتای ۱۰۰٪ واقعی)</h2>
+        <small style="color: var(--muted);">اتصال مستقیم بدون لگ سایت اوپن‌سی</small>
       </div>
       <div>
         <button id="connectBtn" class="btn btn-connect" onclick="connectWallet()">اتصال کیف پول</button>
@@ -266,17 +232,14 @@
       </div>
     </div>
 
-    <div class="quick-add-bar">
-      <input type="text" id="customUrlInput" placeholder="پیست کردن لینک دراپ جدید (مثلا https://opensea.io/collection/chompnft/overview)" />
-      <button onclick="addCustomDrop()">+ بارگذاری دراپ</button>
-    </div>
-
     <div class="app-layout">
+      <!-- لیست کالکشن‌های واقعی -->
       <div>
-        <h3 style="margin: 0 0 12px 0; font-size: 1rem;">کالکشن‌های Drops</h3>
+        <h3 style="margin: 0 0 12px 0; font-size: 1rem;">کالکشن‌ها</h3>
         <div class="sidebar-list" id="collectionsContainer"></div>
       </div>
 
+      <!-- اطلاعات و فازها -->
       <div>
         <div class="hero-card">
           <img id="bannerImg" class="hero-banner" src="" alt="Banner" />
@@ -284,7 +247,7 @@
             <img id="avatarImg" class="avatar-img" src="" alt="Avatar" />
             <div class="hero-text">
               <h2 id="colName">-</h2>
-              <span id="colChainBadge" class="network-pill chain-ethereum">-</span>
+              <span id="colChainBadge" class="network-pill">Ethereum</span>
               <p id="colContract" style="margin: 4px 0 0 0; color: var(--muted); font-size: 0.75rem; font-family: monospace;"></p>
             </div>
           </div>
@@ -294,13 +257,10 @@
         <div class="schedule-box" id="scheduleContainer"></div>
       </div>
 
+      <!-- کنترلر مینت -->
       <div class="mint-card">
         <h3 style="margin-top: 0;">پنل مینت مستقیم</h3>
 
-        <div class="info-row">
-          <span>شبکه فعال:</span>
-          <span id="targetNetworkDisplay" style="color: var(--blue);">-</span>
-        </div>
         <div class="info-row">
           <span>فاز انتخابی:</span>
           <span id="selectedStageName">-</span>
@@ -315,7 +275,7 @@
         </div>
 
         <div style="margin-top: 12px;">
-          <label style="font-size: 0.8rem; color: var(--muted);">تعداد برای مینت:</label>
+          <label style="font-size: 0.8rem; color: var(--muted);">تعداد توکن:</label>
           <input type="number" id="mintQty" class="qty-input" value="1" min="1" max="20" oninput="calculateTotal()" />
         </div>
 
@@ -331,39 +291,13 @@
   </div>
 
   <script>
-    const CHAINS = {
-      ETHEREUM: { id: 1, hex: "0x1", name: "Ethereum", symbol: "ETH" },
-      BASE: { 
-        id: 8453, 
-        hex: "0x2105", 
-        name: "Base", 
-        symbol: "ETH",
-        rpcUrls: ["https://mainnet.base.org"],
-        blockExplorerUrls: ["https://basescan.org"]
-      },
-      ARBITRUM: { 
-        id: 42161, 
-        hex: "0xa4b1", 
-        name: "Arbitrum", 
-        symbol: "ETH",
-        rpcUrls: ["https://arb1.arbitrum.io/rpc"],
-        blockExplorerUrls: ["https://arbiscan.io"]
-      },
-      POLYGON: { 
-        id: 137, 
-        hex: "0x89", 
-        name: "Polygon", 
-        symbol: "POL",
-        rpcUrls: ["https://polygon-rpc.com"],
-        blockExplorerUrls: ["https://polygonscan.com"]
-      }
-    };
-
-    let dropsList = [
+    // فقط دیتای کاملاً واقعی چامپ (بدون هیچ مورد فیک)
+    const REAL_DROPS = [
       {
         id: "chomp",
         name: "Chomp",
-        chain: CHAINS.ETHEREUM,
+        chainName: "Ethereum",
+        chainIdHex: "0x1",
         contract: "0x39aB24564c785Fe687dF7265F5E052d9213812d4",
         banner: "https://i.seadn.io/gcs/files/3b5db3ebcc93c83690d0b04ea0cb13c3.png?auto=format&dpr=1&w=1920",
         avatar: "https://i.seadn.io/gcs/files/ad0118eb3d4432247be9cff98c935472.png?auto=format&dpr=1&w=384",
@@ -373,30 +307,6 @@
           { name: "WL FCFS", type: "Allowlist", status: "Ended", time: "Started: September 6 at 11:15 PM GMT+4", price: 0.003, priceText: "0.003 ETH", limit: 5, eligible: false },
           { name: "Public stage", type: "Public", status: "Live now", time: "Starts: September 7 at 12:15 AM • Ends: September 7, 2027", price: 0.003, priceText: "0.003 ETH", limit: 20, eligible: true }
         ]
-      },
-      {
-        id: "robinhood-arbitrum",
-        name: "Arbitrum Odyssey Drop",
-        chain: CHAINS.ARBITRUM,
-        contract: "0x539bDe0d7Dbd336b79148AA742883198BBF60342",
-        banner: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1200&auto=format&fit=crop&q=80",
-        avatar: "https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?w=300&auto=format&fit=crop&q=80",
-        schedule: [
-          { name: "Early Access", type: "Allowlist", status: "Ended", time: "Finished", price: 0.0005, priceText: "0.0005 ETH", limit: 2, eligible: false },
-          { name: "Public stage", type: "Public", status: "Live now", time: "Live now (Arbitrum Network)", price: 0.001, priceText: "0.001 ETH", limit: 10, eligible: true }
-        ]
-      },
-      {
-        id: "base-origins",
-        name: "Base Verified Drop",
-        chain: CHAINS.BASE,
-        contract: "0x77777772dec96b997fa44b82d49942a781037777",
-        banner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
-        avatar: "https://images.unsplash.com/photo-1634973357973-f2ed2657db3c?w=300&auto=format&fit=crop&q=80",
-        schedule: [
-          { name: "Allowlist Only", type: "Allowlist", status: "Ended", time: "Finished", price: 0, priceText: "Free", limit: 1, eligible: false },
-          { name: "Public stage", type: "Public", status: "Live now", time: "Live now on Base", price: 0.0008, priceText: "0.0008 ETH", limit: 5, eligible: true }
-        ]
       }
     ];
 
@@ -405,25 +315,23 @@
       "function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable"
     ];
 
-    let currentCollection = dropsList[0];
-    let currentStage = currentCollection.schedule.find(s => s.status === "Live now") || currentCollection.schedule[0];
+    let currentCollection = REAL_DROPS[0];
+    let currentStage = currentCollection.schedule[3]; // فاز پابلیک و فعال
     let provider, signer, userAddress;
 
     function renderSidebar() {
       const container = document.getElementById("collectionsContainer");
       container.innerHTML = "";
 
-      dropsList.forEach((col, index) => {
+      REAL_DROPS.forEach((col, index) => {
         const item = document.createElement("div");
-        item.className = `col-card ${col.id === currentCollection.id ? 'active' : ''}`;
+        item.className = `col-card active`;
         item.onclick = () => selectCollection(index);
-
-        const chainClass = `chain-${col.chain.name.toLowerCase()}`;
         item.innerHTML = `
-          <img src="${col.avatar}" alt="${col.name}" onerror="this.src='https://picsum.photos/50/50'" />
+          <img src="${col.avatar}" alt="${col.name}" />
           <div class="col-card-info">
             <h4>${col.name}</h4>
-            <span class="network-pill ${chainClass}">${col.chain.name}</span>
+            <span class="network-pill">${col.chainName}</span>
           </div>
         `;
         container.appendChild(item);
@@ -431,18 +339,12 @@
     }
 
     function selectCollection(index) {
-      currentCollection = dropsList[index];
+      currentCollection = REAL_DROPS[index];
       currentStage = currentCollection.schedule.find(s => s.status === "Live now") || currentCollection.schedule[0];
 
       document.getElementById("bannerImg").src = currentCollection.banner;
       document.getElementById("avatarImg").src = currentCollection.avatar;
       document.getElementById("colName").innerText = currentCollection.name;
-      
-      const badge = document.getElementById("colChainBadge");
-      badge.innerText = currentCollection.chain.name;
-      badge.className = `network-pill chain-${currentCollection.chain.name.toLowerCase()}`;
-      
-      document.getElementById("targetNetworkDisplay").innerText = currentCollection.chain.name;
       document.getElementById("colContract").innerText = currentCollection.contract;
 
       renderSidebar();
@@ -495,59 +397,7 @@
     function calculateTotal() {
       const qty = parseInt(document.getElementById("mintQty").value) || 1;
       const total = (qty * currentStage.price).toFixed(4);
-      document.getElementById("totalCost").innerText = `${total} ${currentCollection.chain.symbol}`;
-    }
-
-    function addCustomDrop() {
-      const url = document.getElementById("customUrlInput").value.trim();
-      if (!url) return;
-
-      const slug = url.split("/collection/")[1]?.split("/")[0] || "Custom-Drop-" + (dropsList.length + 1);
-
-      const newDrop = {
-        id: slug,
-        name: slug.toUpperCase(),
-        chain: CHAINS.ETHEREUM,
-        contract: "0x39aB24564c785Fe687dF7265F5E052d9213812d4",
-        banner: "https://picsum.photos/seed/" + slug + "/900/200",
-        avatar: "https://picsum.photos/seed/" + slug + "a/100/100",
-        schedule: [
-          { name: "Public stage", type: "Public", status: "Live now", time: "هم‌اکنون فعال در شبکه", price: 0.003, priceText: "0.003 ETH", limit: 20, eligible: true }
-        ]
-      };
-
-      dropsList.unshift(newDrop);
-      document.getElementById("customUrlInput").value = "";
-      selectCollection(0);
-      showStatus("کالکشن با موفقیت اضافه شد و انتخاب گردید ✓", "success");
-    }
-
-    async function switchNetworkIfNeeded(targetChain) {
-      const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
-      if (parseInt(currentChainId, 16) !== targetChain.id) {
-        showStatus(`در حال تغییر شبکه متامسک به ${targetChain.name}...`, "info");
-        try {
-          await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: targetChain.hex }]
-          });
-        } catch (err) {
-          if (err.code === 4902 && targetChain.rpcUrls) {
-            await window.ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [{
-                chainId: targetChain.hex,
-                chainName: targetChain.name,
-                nativeCurrency: { name: targetChain.symbol, symbol: targetChain.symbol, decimals: 18 },
-                rpcUrls: targetChain.rpcUrls,
-                blockExplorerUrls: targetChain.blockExplorerUrls
-              }]
-            });
-          } else {
-            throw err;
-          }
-        }
-      }
+      document.getElementById("totalCost").innerText = `${total} ETH`;
     }
 
     async function connectWallet() {
@@ -576,7 +426,7 @@
     async function executeMint() {
       if (!signer) return;
       if (currentStage.status === "Ended") {
-        showStatus("این فاز تمام شده است. فاز لایو (Live now) را انتخاب کنید.", "error");
+        showStatus("این فاز منقضی شده است. فاز Live now را انتخاب کنید.", "error");
         return;
       }
 
@@ -584,14 +434,11 @@
       const totalEth = ethers.utils.parseEther((qty * currentStage.price).toString());
 
       try {
-        await switchNetworkIfNeeded(currentCollection.chain);
-
-        // رفع قطعی و خودکار خطای Checksum با استانداردسازی آدرس
-        const rawContract = currentCollection.contract.trim().toLowerCase();
-        const cleanContract = ethers.utils.getAddress(rawContract);
+        // رفع قطعی ارور Checksum با متد getAddress
+        const cleanContract = ethers.utils.getAddress(currentCollection.contract.trim().toLowerCase());
         const cleanSeaDrop = ethers.utils.getAddress(SEADROP_ADDRESS.toLowerCase());
 
-        showStatus("در حال ارسال تراکنش به قرارداد SeaDrop...", "info");
+        showStatus("در حال ارسال تراکنش به کانترکت SeaDrop...", "info");
         const seaDrop = new ethers.Contract(cleanSeaDrop, SEADROP_ABI, signer);
 
         const tx = await seaDrop.mintPublic(
