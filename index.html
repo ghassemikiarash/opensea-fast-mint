@@ -3,31 +3,101 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>سریع‌ترین مینتر اوپن‌سی (SeaDrop)</title>
+  <title>لانچ‌پد سریع SeaDrop</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
       background: #0d1117;
-      color: #c9d1d9;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
+      color: #e6edf3;
       margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    .card {
+    .header {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 15px;
+    }
+    .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: 0.2s;
+    }
+    .btn-wallet { background: #238636; color: white; }
+    .btn-wallet:hover { background: #2ea043; }
+    .btn-mint { background: #1f6feb; color: white; width: 100%; padding: 14px; font-size: 1rem; margin-top: 15px; }
+    .btn-mint:hover { background: #388bfd; }
+    .btn-mint:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    /* استایل کارت‌های دراپ */
+    .drops-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 15px;
+    }
+    .drop-card {
       background: #161b22;
       border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 24px;
-      width: 100%;
-      max-width: 440px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      transition: 0.2s;
     }
-    h2 { margin-top: 0; color: #58a6ff; text-align: center; font-size: 1.3rem; }
-    label { display: block; font-size: 0.85rem; margin-top: 14px; margin-bottom: 6px; color: #8b949e; }
-    input {
+    .drop-card:hover, .drop-card.active {
+      border-color: #58a6ff;
+      background: #1c2128;
+    }
+    .drop-card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .drop-card h3 { margin: 10px 0 5px 0; font-size: 1rem; }
+    .drop-card p { margin: 2px 0; font-size: 0.8rem; color: #8b949e; }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      background: #388bfd22;
+      color: #58a6ff;
+      margin-top: 5px;
+    }
+
+    /* پنل تسویه و مینت */
+    .mint-panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 20px;
+      height: fit-content;
+    }
+    .mint-panel label { display: block; font-size: 0.85rem; margin-top: 12px; color: #8b949e; }
+    .mint-panel input {
       width: 100%;
       padding: 10px;
       background: #0d1117;
@@ -35,26 +105,11 @@
       border-radius: 6px;
       color: #fff;
       box-sizing: border-box;
-      font-family: monospace;
+      margin-top: 5px;
     }
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 16px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 0.95rem;
-      transition: 0.2s;
-    }
-    .btn-connect { background: #238636; color: white; }
-    .btn-connect:hover { background: #2ea043; }
-    .btn-mint { background: #1f6feb; color: white; }
-    .btn-mint:hover { background: #388bfd; }
     #status {
       margin-top: 15px;
-      padding: 10px;
+      padding: 12px;
       border-radius: 6px;
       font-size: 0.85rem;
       display: none;
@@ -67,36 +122,106 @@
 </head>
 <body>
 
-  <div class="card">
-    <h2>مینتر مستقیم اوپن‌سی ⚡</h2>
-    
-    <button id="connectBtn" class="btn-connect" onclick="connectWallet()">اتصال متامسک</button>
-    <div id="walletAddr" style="font-size: 0.8rem; color: #8b949e; text-align: center; margin-top: 6px;"></div>
+  <div class="header">
+    <div>
+      <h2 style="margin: 0; color: #58a6ff;">🚀 لانچ‌پد سریع مینت</h2>
+      <small style="color: #8b949e;">انتخاب مستقیم دراپ بدون باز کردن اوپن‌سی</small>
+    </div>
+    <div>
+      <button id="connectBtn" class="btn btn-wallet" onclick="connectWallet()">اتصال متامسک</button>
+      <div id="walletAddr" style="font-size: 0.75rem; color: #8b949e; text-align: left; margin-top: 4px;"></div>
+    </div>
+  </div>
 
-    <label>آدرس قرارداد ان‌اف‌تی (NFT Contract):</label>
-    <input type="text" id="nftAddress" placeholder="0x..." />
+  <div class="container">
+    <!-- ستون لیست کالکشن‌ها -->
+    <div>
+      <h3 style="margin-top: 0;">کالکشن‌های آماده</h3>
+      <div class="drops-list" id="dropsContainer"></div>
+    </div>
 
-    <label>تعداد مینت (Quantity):</label>
-    <input type="number" id="quantity" value="1" min="1" />
+    <!-- ستون پنل مینت سریع -->
+    <div class="mint-panel">
+      <h3 style="margin-top: 0; color: #fff;">کنترلر مینت مستقیم</h3>
+      
+      <label>کالکشن انتخاب‌شده:</label>
+      <input type="text" id="selectedName" readonly value="هیچ کالکشنی انتخاب نشده" style="color: #58a6ff; font-weight: bold;" />
 
-    <label>قیمت هر واحد (به اتر - مثلا 0.005 یا 0 برای رایگان):</label>
-    <input type="text" id="priceEth" value="0" />
+      <label>آدرس کانترکت NFT:</label>
+      <input type="text" id="nftAddress" placeholder="0x..." />
 
-    <button id="mintBtn" class="btn-mint" onclick="mintPublic()" disabled>مینت مستقیم (دور زدن سایت)</button>
+      <label>قیمت واحد (ETH):</label>
+      <input type="text" id="priceEth" value="0" />
 
-    <div id="status"></div>
+      <label>تعداد مینت:</label>
+      <input type="number" id="quantity" value="1" min="1" max="10" />
+
+      <button id="mintBtn" class="btn btn-mint" onclick="mintPublic()" disabled>مینت مستقیم ⚡</button>
+
+      <div id="status"></div>
+    </div>
   </div>
 
   <script>
-    // آدرس رسمی قرارداد SeaDrop اوپن‌سی روی شبکه‌ها
+    // لیست دراپ‌ها (می‌تونی هر دراپ جدیدی رو فقط با اضافه کردن یه خط اینجا اضافه کنی)
+    const DROPS_DATA = [
+      {
+        name: "Chomp NFT",
+        contract: "0x39aB24564c785Fe687dF7265F5E052d9213812d4", // فرضی/تستی چامپ
+        price: "0.00",
+        image: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=500&auto=format&fit=crop&q=60",
+        network: "Ethereum / Base"
+      },
+      {
+        name: "OpenSea Drop Beta",
+        contract: "0x1234567890123456789012345678901234567890",
+        price: "0.005",
+        image: "https://images.unsplash.com/photo-1634973357973-f2ed2657db3c?w=500&auto=format&fit=crop&q=60",
+        network: "Base"
+      },
+      {
+        name: "Free Mint Pass",
+        contract: "0x9876543210987654321098765432109876543210",
+        price: "0.0",
+        image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=60",
+        network: "Ethereum"
+      }
+    ];
+
     const SEADROP_ADDRESS = "0x00005EA00Ac477B1030CE7850649666545161545";
-    
-    // حداقل متد مورد نیاز SeaDrop برای مینت پابلیک
     const SEADROP_ABI = [
       "function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable"
     ];
 
-    let provider, signer, userAddress;
+    let provider, signer;
+
+    // رندر کردن دراپ‌ها در صفحه
+    function renderDrops() {
+      const container = document.getElementById("dropsContainer");
+      container.innerHTML = "";
+      DROPS_DATA.forEach((drop, index) => {
+        const card = document.createElement("div");
+        card.className = "drop-card";
+        card.onclick = () => selectDrop(index, card);
+        card.innerHTML = `
+          <img src="${drop.image}" alt="${drop.name}" />
+          <h3>${drop.name}</h3>
+          <p>قیمت: ${drop.price} ETH</p>
+          <span class="badge">${drop.network}</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectDrop(index, cardElement) {
+      document.querySelectorAll(".drop-card").forEach(c => c.classList.remove("active"));
+      cardElement.classList.add("active");
+
+      const drop = DROPS_DATA[index];
+      document.getElementById("selectedName").value = drop.name;
+      document.getElementById("nftAddress").value = drop.contract;
+      document.getElementById("priceEth").value = drop.price;
+    }
 
     function showStatus(msg, type) {
       const box = document.getElementById("status");
@@ -107,21 +232,21 @@
 
     async function connectWallet() {
       if (!window.ethereum) {
-        alert("لطفاً افزونه متامسک را روی مرورگر نصب داشته باشید.");
+        alert("لطفاً افزونه متامسک را نصب کنید.");
         return;
       }
       try {
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
-        userAddress = await signer.getAddress();
-        
-        document.getElementById("walletAddr").innerText = "متصل شد: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
-        document.getElementById("connectBtn").innerText = "کیف پول وصل است ✓";
+        const address = await signer.getAddress();
+
+        document.getElementById("walletAddr").innerText = address.slice(0, 6) + "..." + address.slice(-4);
+        document.getElementById("connectBtn").innerText = "متصل شد ✓";
         document.getElementById("connectBtn").style.background = "#21262d";
         document.getElementById("mintBtn").disabled = false;
       } catch (err) {
-        showStatus("خطا در اتصال ولت: " + err.message, "error");
+        showStatus("خطا در اتصال: " + err.message, "error");
       }
     }
 
@@ -131,38 +256,34 @@
       const priceEth = document.getElementById("priceEth").value.trim();
 
       if (!ethers.utils.isAddress(nftContract)) {
-        showStatus("آدرس قرارداد NFT نامعتبر است.", "error");
+        showStatus("آدرس قرارداد معتبر نیست.", "error");
         return;
       }
 
-      showStatus("در حال ارسال تراکنش مستقیم به شبکه...", "info");
+      showStatus("ارسال تراکنش مستقیم به شبکه...", "info");
 
       try {
         const seaDropContract = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, signer);
-        
-        // محاسبه مجموع هزینه تراکنش
-        const totalValue = ethers.utils.parseEther((parseFloat(priceEth) * quantity).toString());
-
-        // بدون نیاز به کارمزدگیر اختصاصی (آدرس صفر برای فی‌ریسیپینت پیش‌فرض پابلیک)
-        const feeRecipient = ethers.constants.AddressZero;
-        const minterIfNotPayer = ethers.constants.AddressZero;
+        const totalValue = ethers.utils.parseEther((parseFloat(priceEth || "0") * quantity).toString());
 
         const tx = await seaDropContract.mintPublic(
           nftContract,
-          feeRecipient,
-          minterIfNotPayer,
+          ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           quantity,
           { value: totalValue }
         );
 
-        showStatus("تراکنش فرستاده شد! هش تراکنش: " + tx.hash + " (در انتظار تایید...)", "info");
+        showStatus("تراکنش فرستاده شد: " + tx.hash, "info");
         await tx.wait();
-        showStatus("تبریک! مینت با موفقیت انجام شد 🎉", "success");
+        showStatus("مینت با موفقیت انجام شد! 🎉", "success");
       } catch (err) {
-        console.error(err);
         showStatus("خطا در مینت: " + (err.reason || err.message), "error");
       }
     }
+
+    // لود اولیه
+    renderDrops();
   </script>
 </body>
 </html>
