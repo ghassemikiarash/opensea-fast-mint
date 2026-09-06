@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>سریع‌ترین مینتر اوپن‌سی (SeaDrop)</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    h2 { margin-top: 0; color: #58a6ff; text-align: center; font-size: 1.3rem; }
+    label { display: block; font-size: 0.85rem; margin-top: 14px; margin-bottom: 6px; color: #8b949e; }
+    input {
+      width: 100%;
+      padding: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #fff;
+      box-sizing: border-box;
+      font-family: monospace;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 16px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: 0.2s;
+    }
+    .btn-connect { background: #238636; color: white; }
+    .btn-connect:hover { background: #2ea043; }
+    .btn-mint { background: #1f6feb; color: white; }
+    .btn-mint:hover { background: #388bfd; }
+    #status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      display: none;
+      word-break: break-all;
+    }
+    .success { background: #1b472c; color: #7ee787; }
+    .error { background: #4c1d24; color: #ff7b72; }
+    .info { background: #1f3557; color: #79c0ff; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>مینتر مستقیم اوپن‌سی ⚡</h2>
+    
+    <button id="connectBtn" class="btn-connect" onclick="connectWallet()">اتصال متامسک</button>
+    <div id="walletAddr" style="font-size: 0.8rem; color: #8b949e; text-align: center; margin-top: 6px;"></div>
+
+    <label>آدرس قرارداد ان‌اف‌تی (NFT Contract):</label>
+    <input type="text" id="nftAddress" placeholder="0x..." />
+
+    <label>تعداد مینت (Quantity):</label>
+    <input type="number" id="quantity" value="1" min="1" />
+
+    <label>قیمت هر واحد (به اتر - مثلا 0.005 یا 0 برای رایگان):</label>
+    <input type="text" id="priceEth" value="0" />
+
+    <button id="mintBtn" class="btn-mint" onclick="mintPublic()" disabled>مینت مستقیم (دور زدن سایت)</button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // آدرس رسمی قرارداد SeaDrop اوپن‌سی روی شبکه‌ها
+    const SEADROP_ADDRESS = "0x00005EA00Ac477B1030CE7850649666545161545";
+    
+    // حداقل متد مورد نیاز SeaDrop برای مینت پابلیک
+    const SEADROP_ABI = [
+      "function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable"
+    ];
+
+    let provider, signer, userAddress;
+
+    function showStatus(msg, type) {
+      const box = document.getElementById("status");
+      box.className = type;
+      box.innerText = msg;
+      box.style.display = "block";
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("لطفاً افزونه متامسک را روی مرورگر نصب داشته باشید.");
+        return;
+      }
+      try {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        
+        document.getElementById("walletAddr").innerText = "متصل شد: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+        document.getElementById("connectBtn").innerText = "کیف پول وصل است ✓";
+        document.getElementById("connectBtn").style.background = "#21262d";
+        document.getElementById("mintBtn").disabled = false;
+      } catch (err) {
+        showStatus("خطا در اتصال ولت: " + err.message, "error");
+      }
+    }
+
+    async function mintPublic() {
+      const nftContract = document.getElementById("nftAddress").value.trim();
+      const quantity = parseInt(document.getElementById("quantity").value);
+      const priceEth = document.getElementById("priceEth").value.trim();
+
+      if (!ethers.utils.isAddress(nftContract)) {
+        showStatus("آدرس قرارداد NFT نامعتبر است.", "error");
+        return;
+      }
+
+      showStatus("در حال ارسال تراکنش مستقیم به شبکه...", "info");
+
+      try {
+        const seaDropContract = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, signer);
+        
+        // محاسبه مجموع هزینه تراکنش
+        const totalValue = ethers.utils.parseEther((parseFloat(priceEth) * quantity).toString());
+
+        // بدون نیاز به کارمزدگیر اختصاصی (آدرس صفر برای فی‌ریسیپینت پیش‌فرض پابلیک)
+        const feeRecipient = ethers.constants.AddressZero;
+        const minterIfNotPayer = ethers.constants.AddressZero;
+
+        const tx = await seaDropContract.mintPublic(
+          nftContract,
+          feeRecipient,
+          minterIfNotPayer,
+          quantity,
+          { value: totalValue }
+        );
+
+        showStatus("تراکنش فرستاده شد! هش تراکنش: " + tx.hash + " (در انتظار تایید...)", "info");
+        await tx.wait();
+        showStatus("تبریک! مینت با موفقیت انجام شد 🎉", "success");
+      } catch (err) {
+        console.error(err);
+        showStatus("خطا در مینت: " + (err.reason || err.message), "error");
+      }
+    }
+  </script>
+</body>
+</html>
