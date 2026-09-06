@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenSea Drops Gateway ⚡</title>
+  <title>OpenSea Drops Fast Minter ⚡</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
@@ -29,7 +29,6 @@
     }
     .wrapper { width: 100%; max-width: 1200px; }
 
-    /* نوار بالا و ولت */
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -51,7 +50,6 @@
     .btn-connect { background: var(--green); color: #fff; }
     .btn-connect:hover { background: #2ea043; }
 
-    /* کادر افزودن سریع لینک */
     .quick-add-bar {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -91,7 +89,6 @@
       .app-layout { grid-template-columns: 1fr; }
     }
 
-    /* سایدبار دراپ‌ها */
     .sidebar-list {
       display: flex;
       flex-direction: column;
@@ -123,7 +120,6 @@
     }
     .col-card-info h4 { margin: 0 0 4px 0; font-size: 0.95rem; }
     
-    /* بج شبکه‌ها */
     .network-pill {
       display: inline-block;
       font-size: 0.7rem;
@@ -136,7 +132,6 @@
     .chain-arbitrum { background: #28a0f022; color: #28a0f0; border: 1px solid #28a0f055; }
     .chain-polygon { background: #8247e522; color: #a855f7; border: 1px solid #8247e555; }
 
-    /* ستون مشخصات */
     .hero-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -168,7 +163,6 @@
     }
     .hero-text h2 { margin: 0 0 4px 0; font-size: 1.3rem; }
 
-    /* فازهای Mint Schedule */
     .schedule-box { display: flex; flex-direction: column; gap: 10px; }
     .stage-item {
       background: var(--card-bg);
@@ -206,7 +200,6 @@
       font-size: 0.8rem;
     }
 
-    /* ستون کنترل مینت */
     .mint-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -262,11 +255,10 @@
 <body>
 
   <div class="wrapper">
-    <!-- نوار بالا -->
     <div class="top-bar">
       <div>
         <h2 style="margin: 0; color: var(--blue);">OpenSea Drops Fast Minter ⚡</h2>
-        <small style="color: var(--muted);">دور زدن مستقیم ترافیک اوپن‌سی و مینت در بلاکچین</small>
+        <small style="color: var(--muted);">دور زدن مستقیم ترافیک اوپن‌سی و مینت مستقیم در بلاکچین</small>
       </div>
       <div>
         <button id="connectBtn" class="btn btn-connect" onclick="connectWallet()">اتصال کیف پول</button>
@@ -274,20 +266,17 @@
       </div>
     </div>
 
-    <!-- کادر لود سریع لینک دراپ -->
     <div class="quick-add-bar">
       <input type="text" id="customUrlInput" placeholder="پیست کردن لینک دراپ جدید (مثلا https://opensea.io/collection/chompnft/overview)" />
       <button onclick="addCustomDrop()">+ بارگذاری دراپ</button>
     </div>
 
     <div class="app-layout">
-      <!-- ستون ۱: لیست دراپ‌ها -->
       <div>
         <h3 style="margin: 0 0 12px 0; font-size: 1rem;">کالکشن‌های Drops</h3>
         <div class="sidebar-list" id="collectionsContainer"></div>
       </div>
 
-      <!-- ستون ۲: هدر و فازهای زمان‌بندی -->
       <div>
         <div class="hero-card">
           <img id="bannerImg" class="hero-banner" src="" alt="Banner" />
@@ -305,7 +294,6 @@
         <div class="schedule-box" id="scheduleContainer"></div>
       </div>
 
-      <!-- ستون ۳: کنترلر مینت و سوئیچ شبکه -->
       <div class="mint-card">
         <h3 style="margin-top: 0;">پنل مینت مستقیم</h3>
 
@@ -343,7 +331,6 @@
   </div>
 
   <script>
-    // اطلاعات شبکه برای سوئیچ خودکار ولت (متامسک و رابین‌هود)
     const CHAINS = {
       ETHEREUM: { id: 1, hex: "0x1", name: "Ethereum", symbol: "ETH" },
       BASE: { 
@@ -372,7 +359,6 @@
       }
     };
 
-    // لیست کامل و تضمین‌شده دراپ‌های زنده همراه با تمام فازها
     let dropsList = [
       {
         id: "chomp",
@@ -512,7 +498,6 @@
       document.getElementById("totalCost").innerText = `${total} ${currentCollection.chain.symbol}`;
     }
 
-    // اضافه کردن هر دراپ دلخواه جدید به لیست با پیست کردن لینک
     function addCustomDrop() {
       const url = document.getElementById("customUrlInput").value.trim();
       if (!url) return;
@@ -537,7 +522,6 @@
       showStatus("کالکشن با موفقیت اضافه شد و انتخاب گردید ✓", "success");
     }
 
-    // سوییچ اتوماتیک شبکه متامسک بر اساس پروژه
     async function switchNetworkIfNeeded(targetChain) {
       const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
       if (parseInt(currentChainId, 16) !== targetChain.id) {
@@ -602,11 +586,16 @@
       try {
         await switchNetworkIfNeeded(currentCollection.chain);
 
+        // رفع قطعی و خودکار خطای Checksum با استانداردسازی آدرس
+        const rawContract = currentCollection.contract.trim().toLowerCase();
+        const cleanContract = ethers.utils.getAddress(rawContract);
+        const cleanSeaDrop = ethers.utils.getAddress(SEADROP_ADDRESS.toLowerCase());
+
         showStatus("در حال ارسال تراکنش به قرارداد SeaDrop...", "info");
-        const seaDrop = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, signer);
+        const seaDrop = new ethers.Contract(cleanSeaDrop, SEADROP_ABI, signer);
 
         const tx = await seaDrop.mintPublic(
-          currentCollection.contract,
+          cleanContract,
           ethers.constants.AddressZero,
           ethers.constants.AddressZero,
           qty,
@@ -628,7 +617,6 @@
       el.style.display = "block";
     }
 
-    // لود تضمینی و فوری
     selectCollection(0);
   </script>
 </body>
