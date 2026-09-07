@@ -231,9 +231,10 @@ function stageStatus(startMs, endMs) {
 }
 
 async function refreshOnChainStage() {
-  if (!currentDrop || !currentDrop.contract) return;
+  if (!currentDrop || !currentDrop.contract) return false;
   try {
     const onchain = await fetchOnChainPublicDrop(currentDrop.chain, currentDrop.contract);
+    console.log("داده‌ی خام getPublicDrop:", onchain);
     onChainStage = {
       label: "Public (روی زنجیره)",
       price: onchain.priceEth,
@@ -248,8 +249,15 @@ async function refreshOnChainStage() {
     selectedStage = onChainStage;
     renderScheduleUI();
     selectStage(onChainStage);
+    if (!onchain.startMs && !onchain.endMs) {
+      showStatus("قرارداد SeaDrop روی این nftContract هیچ فاز Public ثبت‌شده‌ای نداره (همه‌چی صفره). ممکنه از آدرس SeaDrop غیر-استاندارد استفاده کنه.", "error");
+      return false;
+    }
+    return true;
   } catch (err) {
-    showStatus("نتونستم اطلاعات فاز Public را مستقیم از قرارداد بخونم: " + err.message, "error");
+    console.log("خطای کامل fetchOnChainPublicDrop:", err);
+    showStatus("نتونستم اطلاعات فاز Public را مستقیم از قرارداد بخونم: " + (err.reason || err.message), "error");
+    return false;
   }
 }
 
@@ -358,10 +366,13 @@ async function loadDropFromInput() {
     // نه پاسخ OpenSea — تا موقع شلوغی مینت گیر نکنیم.
     if (currentDrop.contract) {
       showStatus("در حال خواندن اطلاعات فاز Public مستقیم از زنجیره...", "info");
-      await refreshOnChainStage();
       if (onChainRefreshTimer) clearInterval(onChainRefreshTimer);
-      onChainRefreshTimer = setInterval(refreshOnChainStage, 15000);
-      showStatus("اطلاعات دراپ مستقیم از قرارداد خونده شد.", "success");
+      const ok = await refreshOnChainStage();
+      if (ok) {
+        onChainRefreshTimer = setInterval(refreshOnChainStage, 15000);
+        showStatus("اطلاعات دراپ مستقیم از قرارداد خونده شد.", "success");
+      }
+      // اگر ok=false، پیام خطای دقیق از خودِ refreshOnChainStage قبلاً نشون داده شده — این‌جا رونویسی‌اش نمی‌کنیم.
     }
     updateMintButtonState();
   } catch (err) {
