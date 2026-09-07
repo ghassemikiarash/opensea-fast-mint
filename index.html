@@ -182,78 +182,7 @@ const CHAINS = {
   robinhood:{ chainIdHex: "0x1237", chainName: "Robinhood Chain", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], blockExplorerUrls: ["https://robinhoodchain.blockscout.com"] },
 };
 
-// ---------------------------------------------------------------------
-// خواندن مستقیم اطلاعات فاز Public از خودِ قرارداد SeaDrop روی زنجیره.
-// این‌جوری موقع شلوغی مینت دیگه به سرویس OpenSea وابسته نیستیم — فقط به
-// RPC زنجیره وابسته‌ایم که معمولاً پایدارتره.
-// آدرس زیر singleton رسمی SeaDrop v1 است و روی اغلب شبکه‌ها (اتریوم،
-// پالیگان، بیس، آربیتروم، رابین‌هود‌چین و ...) با همین آدرس دیپلوی شده.
-// ---------------------------------------------------------------------
-const SEADROP_ADDRESS = "0x00005EA00Ac477B1030CE78506496e8C2dE24bf5";
-const SEADROP_ABI = [
-  "function getPublicDrop(address nftContract) view returns (uint80 mintPrice, uint48 startTime, uint48 endTime, uint16 maxTotalMintableByWallet, uint16 feeBps, bool restrictFeeRecipients)",
-  "function getAllowedFeeRecipients(address nftContract) view returns (address[])",
-  "function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable",
-];
-
-function getReadProvider(chainKey) {
-  const chain = CHAINS[chainKey];
-  if (!chain) return null;
-  return new ethers.providers.JsonRpcProvider(chain.rpcUrls[0]);
-}
-
-// می‌خونه: قیمت، بازه‌ی زمانی، سقف هر ولت — مستقیم از زنجیره، بدون هیچ
-// وابستگی به OpenSea.
-async function fetchOnChainPublicDrop(chainKey, nftContract) {
-  const provider = getReadProvider(chainKey);
-  if (!provider) throw new Error(`شبکه‌ی «${chainKey}» در CHAINS تعریف نشده`);
-  const seadrop = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, provider);
-  const pd = await seadrop.getPublicDrop(nftContract);
-  return {
-    mintPriceWei: pd.mintPrice,
-    priceEth: ethers.utils.formatEther(pd.mintPrice),
-    startMs: pd.startTime.toNumber() * 1000,
-    endMs: pd.endTime.toNumber() * 1000,
-    maxPerWallet: pd.maxTotalMintableByWallet,
-    feeBps: pd.feeBps,
-    restrictFeeRecipients: pd.restrictFeeRecipients,
-  };
-}
-
-let onChainStage = null;
-let onChainRefreshTimer = null;
-
-function stageStatus(startMs, endMs) {
-  const now = Date.now();
-  if (!startMs || now < startMs) return "Upcoming";
-  if (endMs && now > endMs) return "Ended";
-  return "Live now";
-}
-
-async function refreshOnChainStage() {
-  if (!currentDrop || !currentDrop.contract) return;
-  try {
-    const onchain = await fetchOnChainPublicDrop(currentDrop.chain, currentDrop.contract);
-    onChainStage = {
-      label: "Public (روی زنجیره)",
-      price: onchain.priceEth,
-      mintPriceWei: onchain.mintPriceWei,
-      maxPerWallet: onchain.maxPerWallet,
-      startMs: onchain.startMs,
-      endMs: onchain.endMs,
-      status: stageStatus(onchain.startMs, onchain.endMs),
-      onChain: true,
-    };
-    stages = [onChainStage];
-    selectedStage = onChainStage;
-    renderScheduleUI();
-    selectStage(onChainStage);
-  } catch (err) {
-    showStatus("نتونستم اطلاعات فاز Public را مستقیم از قرارداد بخونم: " + err.message, "error");
-  }
-}
-
-
+let provider, signer, userAddress;
 let currentDrop = null;      // پاسخ خام /api/drop
 let currentSlug = null;
 let stages = [];             // فازهای نرمال‌شده
@@ -353,15 +282,9 @@ async function loadDropFromInput() {
     document.getElementById("contractDisplay").innerText = "قرارداد: " + (currentDrop.contract || "نامشخص");
     document.getElementById("networkBadge").innerText = "شبکه: " + currentDrop.chain;
 
-    // از این‌جا به بعد منبع حقیقت قیمت/زمان/سقفِ مینت، خودِ زنجیره‌ست،
-    // نه پاسخ OpenSea — تا موقع شلوغی مینت گیر نکنیم.
-    if (currentDrop.contract) {
-      showStatus("در حال خواندن اطلاعات فاز Public مستقیم از زنجیره...", "info");
-      await refreshOnChainStage();
-      if (onChainRefreshTimer) clearInterval(onChainRefreshTimer);
-      onChainRefreshTimer = setInterval(refreshOnChainStage, 15000);
-      showStatus("اطلاعات دراپ مستقیم از قرارداد خونده شد.", "success");
-    }
+    selectedStage = stages.find((s) => s.status === "Live now") || stages[0] || null;
+    renderScheduleUI();
+    selectStage(selectedStage);
     updateMintButtonState();
   } catch (err) {
     showStatus("خطا در ارتباط با سرور: " + err.message, "error");
@@ -502,38 +425,32 @@ async function executeMint() {
   try {
     await ensureCorrectNetwork();
 
-    // به‌جای گرفتن calldata از OpenSea، مستقیم با خودِ قرارداد SeaDrop
-    // صحبت می‌کنیم — این‌جوری موقع شلوغی مینت به سرویس OpenSea وابسته
-    // نیستیم و فقط به RPC زنجیره نیاز داریم.
-    const seadrop = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, signer);
-
-    showStatus("در حال گرفتن feeRecipient مجاز از زنجیره...", "info");
-    const allowedRecipients = await seadrop.getAllowedFeeRecipients(currentDrop.contract);
-    if (!allowedRecipients || allowedRecipients.length === 0) {
-      showStatus("هیچ feeRecipient مجازی روی زنجیره برای این قرارداد ثبت نشده؛ مینت از این مسیر ممکن نیست.", "error");
-      return;
-    }
-    const feeRecipient = allowedRecipients[0];
-
-    // همیشه قیمت رو تازه از زنجیره دوباره می‌خونیم (نه از cache قبلی) که
-    // اگه سازنده قیمت رو تغییر داده باشه با مقدار پرداختی اشتباه رد نشیم.
-    const fresh = await fetchOnChainPublicDrop(currentDrop.chain, currentDrop.contract);
-    if (stageStatus(fresh.startMs, fresh.endMs) !== "Live now") {
-      showStatus("این فاز الان دیگه Live نیست (زمانش گذشته یا هنوز شروع نشده).", "error");
-      await refreshOnChainStage();
+    showStatus("در حال ساخت تراکنش مینت روی سرور...", "info");
+    const res = await fetch("/api/mint", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug: currentDrop.slug, minter: userAddress, quantity: qty }),
+    });
+    const mintTx = await res.json();
+    if (!res.ok) {
+      showStatus("خطا از OpenSea: " + (mintTx.error || "ساخت تراکنش ناموفق بود"), "error");
       return;
     }
 
-    const value = fresh.mintPriceWei.mul(qty);
+    // OpenSea خودش calldata و آدرس مقصد درست را برمی‌گرداند؛ دیگر نیازی
+    // به ABI و آدرس SeaDrop و feeRecipient حدسی نیست.
+    const to = pick(mintTx, "target", "to");
+    const data = pick(mintTx, "calldata", "data");
+    const value = pick(mintTx, "value") || "0";
 
-    showStatus("در حال ارسال تراکنش mintPublic برای امضا...", "info");
-    const tx = await seadrop.mintPublic(
-      currentDrop.contract,
-      feeRecipient,
-      ethers.constants.AddressZero, // یعنی خود فرستنده گیرنده‌ی NFT است
-      qty,
-      { value }
-    );
+    if (!to || !data) {
+      showStatus("پاسخ /api/mint فرمت غیرمنتظره‌ای داشت؛ کنسول را چک کن.", "error");
+      console.log("پاسخ خام /api/mint:", mintTx);
+      return;
+    }
+
+    showStatus("در حال ارسال تراکنش به کیف پول برای امضا...", "info");
+    const tx = await signer.sendTransaction({ to, data, value: ethers.BigNumber.from(value) });
     showStatus("تراکنش فرستاده شد! هش: " + tx.hash, "info");
     await tx.wait();
     showStatus("مینت با موفقیت کامل انجام شد! 🎉", "success");
