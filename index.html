@@ -210,12 +210,12 @@ async function fetchOnChainPublicDrop(chainKey, nftContract) {
   const seadrop = new ethers.Contract(SEADROP_ADDRESS, SEADROP_ABI, provider);
   const pd = await seadrop.getPublicDrop(nftContract);
   return {
-    mintPriceWei: pd.mintPrice,
+    mintPriceWei: pd.mintPrice, // uint80 → BigNumber
     priceEth: ethers.utils.formatEther(pd.mintPrice),
-    startMs: pd.startTime.toNumber() * 1000,
-    endMs: pd.endTime.toNumber() * 1000,
-    maxPerWallet: pd.maxTotalMintableByWallet,
-    feeBps: pd.feeBps,
+    startMs: pd.startTime * 1000,               // uint48 → عدد معمولی، نیازی به toNumber نیست
+    endMs: pd.endTime * 1000,                   // همین‌طور
+    maxPerWallet: pd.maxTotalMintableByWallet,   // uint16 → عدد معمولی
+    feeBps: pd.feeBps,                           // uint16 → عدد معمولی
     restrictFeeRecipients: pd.restrictFeeRecipients,
   };
 }
