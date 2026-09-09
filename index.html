@@ -103,6 +103,36 @@ body {
 .error { background: #4c1d24; color: #ff7b72; }
 .info { background: #1f3557; color: #79c0ff; }
 .empty-hint { color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; }
+
+.countdown-box {
+  display: none; background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 26px 20px; margin-bottom: 20px; text-align: center;
+}
+.countdown-label { color: var(--muted); font-size: 0.9rem; margin-bottom: 10px; }
+.countdown-timer {
+  font-size: 2.6rem; font-weight: 800; font-family: monospace; color: var(--blue);
+  letter-spacing: 2px; direction: ltr; unicode-bidi: bidi-override;
+}
+@media (max-width: 500px) { .countdown-timer { font-size: 1.9rem; } }
+.countdown-sub { color: var(--muted); font-size: 0.8rem; margin-top: 8px; }
+.notify-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid #21262d;
+}
+.notify-row label { font-size: 0.85rem; color: var(--text); cursor: pointer; }
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider {
+  position: absolute; cursor: pointer; inset: 0; background-color: #30363d;
+  transition: 0.2s; border-radius: 24px;
+}
+.switch-slider:before {
+  position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+  background-color: #fff; transition: 0.2s; border-radius: 50%;
+}
+.switch input:checked + .switch-slider { background-color: var(--green); }
+.switch input:checked + .switch-slider:before { transform: translateX(20px); }
+.notify-status { font-size: 0.75rem; color: var(--muted); margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -130,6 +160,20 @@ body {
   </div>
 
   <div id="status"></div>
+
+  <div class="countdown-box" id="countdownBox">
+    <div class="countdown-label">⏳ تا شروع فاز Public</div>
+    <div class="countdown-timer" id="countdownTimer">--:--:--:--</div>
+    <div class="countdown-sub" id="countdownSub"></div>
+    <div class="notify-row">
+      <label class="switch">
+        <input type="checkbox" id="notifyToggle" onchange="onNotifyToggle()" />
+        <span class="switch-slider"></span>
+      </label>
+      <label for="notifyToggle">نوتیفیکیشن ۵ دقیقه قبل از شروع مینت</label>
+    </div>
+    <div class="notify-status" id="notifyStatus"></div>
+  </div>
 
   <div class="drop-hero" id="heroSection" style="display:none;">
     <div>
@@ -425,7 +469,135 @@ function selectStage(stage) {
   renderScheduleUI();
   calculateTotal();
   updateMintButtonState();
+  setupCountdown(stage);
 }
+
+// ---------------------------------------------------------------------
+// تایمر شمارش‌معکوس بزرگ برای فازهایی که هنوز شروع نشدن + نوتیفیکیشن
+// ۵ دقیقه‌ی مانده. مبنای زمان همون ساعت سیستم (ویندوز) خودِ کاربره،
+// چون Date.now() توی جاوااسکریپت از ساعت لوکال سیستم می‌خونه.
+// ---------------------------------------------------------------------
+const NOTIFY_LEAD_MS = 5 * 60 * 1000; // ۵ دقیقه
+let countdownTimerHandle = null;
+let notifiedForStartMs = null; // جلوگیری از نوتیف تکراری برای همون فاز
+
+function setupCountdown(stage) {
+  if (countdownTimerHandle) clearInterval(countdownTimerHandle);
+  const box = document.getElementById("countdownBox");
+
+  if (!stage || !stage.startMs || stage.status !== "Upcoming") {
+    box.style.display = "none";
+    return;
+  }
+
+  box.style.display = "block";
+  tickCountdown(stage);
+  countdownTimerHandle = setInterval(() => tickCountdown(stage), 1000);
+}
+
+function tickCountdown(stage) {
+  const box = document.getElementById("countdownBox");
+  const remaining = stage.startMs - Date.now();
+
+  if (remaining <= 0) {
+    // زمان شروع فرا رسیده — تایمر رو مخفی می‌کنیم و اطلاعات فاز رو
+    // دوباره از زنجیره تازه می‌کنیم تا وضعیت Live واقعی بشه.
+    box.style.display = "none";
+    clearInterval(countdownTimerHandle);
+    refreshOnChainStage();
+    return;
+  }
+
+  const totalSec = Math.floor(remaining / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+
+  document.getElementById("countdownTimer").innerText =
+    (days > 0 ? days + "d " : "") + `${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+  document.getElementById("countdownSub").innerText =
+    "شروع در: " + new Date(stage.startMs).toLocaleString();
+
+  // نوتیفیکیشن ۵ دقیقه‌ی مانده
+  if (
+    notifyEnabled &&
+    remaining <= NOTIFY_LEAD_MS &&
+    notifiedForStartMs !== stage.startMs
+  ) {
+    fireMintReminderNotification(stage);
+    notifiedForStartMs = stage.startMs;
+  }
+}
+
+function fireMintReminderNotification(stage) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const minutesLeft = Math.ceil((stage.startMs - Date.now()) / 60000);
+  const n = new Notification("⏰ مینت به‌زودی شروع می‌شود", {
+    body: `${currentDrop?.name || "دراپ"} تا ${minutesLeft} دقیقه‌ی دیگر شروع می‌شود. آماده باش!`,
+    tag: "mint-reminder",
+  });
+  n.onclick = () => { window.focus(); n.close(); };
+}
+
+// ---------------------------------------------------------------------
+// روشن/خاموش‌کردن نوتیفیکیشن، با ذخیره‌ی وضعیت توی localStorage تا بین
+// بازکردن‌های بعدی صفحه هم یادش بمونه.
+// ---------------------------------------------------------------------
+let notifyEnabled = localStorage.getItem("mintNotifyEnabled") === "true";
+
+function initNotifyToggleUI() {
+  const toggle = document.getElementById("notifyToggle");
+  const statusEl = document.getElementById("notifyStatus");
+  toggle.checked = notifyEnabled;
+  updateNotifyStatusText();
+
+  function updateNotifyStatusText() {
+    if (!("Notification" in window)) {
+      statusEl.innerText = "مرورگرت از نوتیفیکیشن پشتیبانی نمی‌کنه.";
+    } else if (Notification.permission === "denied") {
+      statusEl.innerText = "دسترسی نوتیفیکیشن مسدود شده؛ از تنظیمات مرورگر بازش کن.";
+    } else if (notifyEnabled) {
+      statusEl.innerText = "فعال — ۵ دقیقه قبل از شروع بهت خبر می‌دیم.";
+    } else {
+      statusEl.innerText = "خاموش";
+    }
+  }
+  window.__updateNotifyStatusText = updateNotifyStatusText;
+}
+
+async function onNotifyToggle() {
+  const toggle = document.getElementById("notifyToggle");
+
+  if (toggle.checked) {
+    if (!("Notification" in window)) {
+      showStatus("مرورگرت از Notification API پشتیبانی نمی‌کنه.", "error");
+      toggle.checked = false;
+      return;
+    }
+    let permission = Notification.permission;
+    if (permission === "default") {
+      permission = await Notification.requestPermission();
+    }
+    if (permission !== "granted") {
+      showStatus("اجازه‌ی نوتیفیکیشن داده نشد؛ از تنظیمات مرورگر برای این سایت فعالش کن.", "error");
+      toggle.checked = false;
+      notifyEnabled = false;
+      localStorage.setItem("mintNotifyEnabled", "false");
+      window.__updateNotifyStatusText?.();
+      return;
+    }
+    notifyEnabled = true;
+  } else {
+    notifyEnabled = false;
+  }
+
+  localStorage.setItem("mintNotifyEnabled", String(notifyEnabled));
+  window.__updateNotifyStatusText?.();
+}
+
+document.addEventListener("DOMContentLoaded", initNotifyToggleUI);
 
 function calculateTotal() {
   if (!selectedStage) return;
